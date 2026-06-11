@@ -398,6 +398,73 @@
       .stats-row { grid-template-columns: 1fr 1fr; }
     }
 
+    /* ── Score ticker ── */
+    .ticker-wrap {
+      background: #0d1220;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      height: 40px;
+      margin-bottom: 20px;
+    }
+    .ticker-label {
+      flex-shrink: 0;
+      padding: 0 14px;
+      font-size: 11px; font-weight: 800;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: #000;
+      background: var(--gold);
+      height: 100%;
+      display: flex; align-items: center;
+      border-right: 2px solid #b8941a;
+    }
+    .ticker-label.live-label {
+      background: var(--accent2);
+      border-right-color: #0a8a60;
+    }
+    .ticker-track {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      height: 100%;
+    }
+    .ticker-inner {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      height: 100%;
+      white-space: nowrap;
+      animation: ticker-scroll 30s linear infinite;
+    }
+    .ticker-inner:hover { animation-play-state: paused; }
+    @keyframes ticker-scroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .ticker-item {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 0 20px;
+      font-size: 13px; font-weight: 600;
+      border-right: 1px solid var(--border);
+      height: 100%;
+      cursor: default;
+    }
+    .ticker-item:hover { background: rgba(255,255,255,0.04); }
+    .ticker-item .t-flag { font-size: 16px; }
+    .ticker-item .t-name { color: var(--muted2); }
+    .ticker-item .t-score { font-weight: 900; color: var(--text); font-size: 14px; }
+    .ticker-item .t-score.live { color: var(--accent2); }
+    .ticker-item .t-status {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
+      padding: 1px 6px; border-radius: 100px; text-transform: uppercase;
+    }
+    .ticker-item .t-status.final    { background: rgba(255,255,255,0.08); color: var(--muted); }
+    .ticker-item .t-status.live-st  { background: rgba(16,185,129,0.2); color: var(--accent2); animation: pulse 1.5s infinite; }
+    .ticker-item .t-owner { font-size: 11px; color: var(--gold); font-weight: 700; }
+    .ticker-empty { font-size: 13px; color: var(--muted); padding: 0 20px; }
+
     /* ── Breakdown ── */
     .breakdown-grid {
       display: grid;
@@ -668,6 +735,7 @@
   <div id="tab-leaderboard" class="view active">
     <div class="stats-row" id="stats-row"></div>
 
+    <div id="score-ticker"></div>
     <div class="section-label">Standings</div>
     <div class="lb-table">
       <div class="lb-header">
@@ -1142,6 +1210,7 @@ function toast(msg) {
 
 function render() {
   renderStats();
+  renderTicker();
   renderLeaderboard();
   renderFriendCards();
   renderBreakdown();
@@ -1149,6 +1218,59 @@ function render() {
   renderMatchLog();
   renderGroups();
   renderSetup();
+}
+
+function renderTicker() {
+  const el = document.getElementById('score-ticker');
+  if (!el) return;
+
+  const live = state.liveMatches || [];
+  const recent = [...state.matches].reverse().slice(0, 20);
+  const hasLive = live.length > 0;
+  const cF = n => COUNTRIES.find(c => c.name === n);
+
+  if (!live.length && !recent.length) {
+    el.innerHTML = `<div class="ticker-wrap">
+      <div class="ticker-label">SCORES</div>
+      <div class="ticker-track"><span class="ticker-empty">No results yet — scores will appear here once matches are played</span></div>
+    </div>`;
+    return;
+  }
+
+  const makeItem = (teamA, teamB, scoreA, scoreB, statusClass, statusLabel, ownerA, ownerB) => {
+    const fa = cF(teamA), fb = cF(teamB);
+    const owners = [ownerA, ownerB].filter(Boolean);
+    return `<div class="ticker-item">
+      <span class="t-flag">${fa?.flag || ''}</span>
+      <span class="t-name">${teamA}</span>
+      <span class="t-score ${statusClass === 'live-st' ? 'live' : ''}">${scoreA} – ${scoreB}</span>
+      <span class="t-name">${teamB}</span>
+      <span class="t-flag">${fb?.flag || ''}</span>
+      <span class="t-status ${statusClass}">${statusLabel}</span>
+      ${owners.length ? `<span class="t-owner">⭐ ${owners.join(' · ')}</span>` : ''}
+    </div>`;
+  };
+
+  const liveItems = live.map(m =>
+    makeItem(m.teamA, m.teamB, m.scoreA, m.scoreB, 'live-st', m.clock || 'Live',
+      state.assignments[m.teamA], state.assignments[m.teamB])
+  ).join('');
+
+  const recentItems = recent.map(m =>
+    makeItem(m.teamA, m.teamB, m.scoreA, m.scoreB, 'final', 'FT',
+      state.assignments[m.teamA], state.assignments[m.teamB])
+  ).join('');
+
+  const allItems = liveItems + recentItems;
+  const labelClass = hasLive ? 'live-label' : '';
+  const labelText = hasLive ? '🔴 LIVE' : 'SCORES';
+
+  el.innerHTML = `<div class="ticker-wrap">
+    <div class="ticker-label ${labelClass}">${labelText}</div>
+    <div class="ticker-track">
+      <div class="ticker-inner">${allItems}${allItems}</div>
+    </div>
+  </div>`;
 }
 
 function renderBreakdown() {
