@@ -757,42 +757,6 @@
 
   <!-- ── MATCHES ── -->
   <div id="tab-matches" class="view">
-    <div class="match-form-card">
-      <div class="section-label">Log a result</div>
-      <div class="form-row">
-        <div class="form-field">
-          <label>Home team</label>
-          <select id="team-a"></select>
-        </div>
-        <div class="form-field" style="flex:0; min-width:0;">
-          <label>Score</label>
-          <div class="score-row">
-            <input type="number" id="score-a" min="0" value="0" />
-            <span class="score-sep">–</span>
-            <input type="number" id="score-b" min="0" value="0" />
-          </div>
-        </div>
-        <div class="form-field">
-          <label>Away team</label>
-          <select id="team-b"></select>
-        </div>
-        <div class="form-field" style="flex:0; min-width:150px;">
-          <label>Stage</label>
-          <select id="match-stage">
-            <option>Group stage</option>
-            <option>Round of 32</option>
-            <option>Round of 16</option>
-            <option>Quarter-final</option>
-            <option>Semi-final</option>
-            <option>Final</option>
-          </select>
-        </div>
-        <div class="form-field" style="flex:0; align-self:flex-end;">
-          <button class="btn btn-gold" onclick="logMatch()">＋ Add result</button>
-        </div>
-      </div>
-    </div>
-
     <div class="sync-bar">
       <div class="sync-dot" id="sync-dot"></div>
       <div class="sync-status" id="sync-status">Not synced yet</div>
