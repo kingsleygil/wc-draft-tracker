@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>World Cup Draft Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0e1a;
+      --surface:   #111827;
+      --card:      #161d2e;
+      --border:    rgba(255,255,255,0.08);
+      --border-hi: rgba(255,255,255,0.15);
+      --gold:      #f5c518;
+      --gold-dim:  #b8941a;
+      --accent:    #3b82f6;
+      --accent2:   #10b981;
+      --danger:    #ef4444;
+      --text:      #f1f5f9;
+      --muted:     #64748b;
+      --muted2:    #94a3b8;
+      --radius:    10px;
+      --radius-lg: 16px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #0f1729 0%, #1a2540 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 60px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--gold);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .logo-text { font-size: 16px; font-weight: 800; letter-spacing: -0.3px; }
+    .logo-sub  { font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+    .header-nav {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+    .nav-btn {
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted2);
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: 'Inter', sans-serif;
+    }
+    .nav-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+    .nav-btn.active { color: var(--gold); background: rgba(245,197,24,0.1); }
+
+    /* ── Main ── */
+    .main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    /* ── Stat cards ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+    }
+    .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 6px; }
+    .stat-value { font-size: 28px; font-weight: 900; color: var(--text); line-height: 1; }
+    .stat-value.gold { color: var(--gold); }
+    .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Leaderboard ── */
+    .lb-table {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+    .lb-header {
+      display: grid;
+      grid-template-columns: 48px 1fr 80px 80px 80px;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .lb-row {
+      display: grid;
+      grid-template-columns: 48px 1fr 80px 80px 80px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+      transition: background 0.12s;
+      cursor: pointer;
+    }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-row:hover { background: rgba(255,255,255,0.03); }
+    .lb-row.first  { background: rgba(245,197,24,0.05); }
+    .lb-row.second { background: rgba(148,163,184,0.04); }
+    .lb-row.third  { background: rgba(180,120,60,0.04); }
+
+    .rank-badge {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800;
+    }
+    .rank-1 { background: rgba(245,197,24,0.2); color: var(--gold); }
+    .rank-2 { background: rgba(148,163,184,0.2); color: #94a3b8; }
+    .rank-3 { background: rgba(180,120,60,0.2); color: #cd853f; }
+    .rank-n { background: rgba(255,255,255,0.06); color: var(--muted); }
+
+    .lb-player { display: flex; align-items: center; gap: 12px; }
+    .avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .lb-name { font-weight: 700; font-size: 14px; }
+    .lb-flags { font-size: 12px; color: var(--muted2); margin-top: 2px; }
+    .lb-pts  { font-size: 18px; font-weight: 900; color: var(--text); }
+    .lb-countries-count { font-size: 13px; color: var(--muted2); text-align: center; }
+    .lb-change { font-size: 12px; text-align: center; }
+    .lb-matches { font-size: 13px; color: var(--muted2); text-align: center; }
+
+    /* ── Friend detail cards ── */
+    .friend-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .friend-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      transition: border-color 0.15s;
+    }
+    .friend-card:hover { border-color: var(--border-hi); }
+    .friend-card-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 16px;
+    }
+    .friend-card-pts { margin-left: auto; text-align: right; }
+    .friend-card-pts .pts-num { font-size: 24px; font-weight: 900; color: var(--gold); }
+    .friend-card-pts .pts-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+    .country-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 10px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted2);
+    }
+    .chip .chip-pts { color: var(--accent2); font-weight: 700; }
+
+    /* ── Match log ── */
+    .match-form-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .form-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 14px; }
+    .form-field { display: flex; flex-direction: column; gap: 7px; flex: 1; min-width: 130px; }
+    .form-field label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+    .form-field select, .form-field input[type="number"] {
+      height: 40px; padding: 0 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border-hi);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 14px; font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      appearance: none;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-field select:focus, .form-field input[type="number"]:focus { border-color: var(--accent); }
+    .form-field select option { background: #1e293b; }
+    .score-row { display: flex; align-items: center; gap: 10px; }
+    .score-row input { width: 64px; text-align: center; }
+    .score-sep { font-size: 20px; font-weight: 900; color: var(--muted); }
+
+    .btn {
+      height: 40px; padding: 0 20px;
+      border-radius: var(--radius);
+      font-size: 13px; font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer; border: 1px solid var(--border-hi);
+      background: rgba(255,255,255,0.06); color: var(--text);
+      transition: all 0.15s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover { background: rgba(255,255,255,0.1); }
+    .btn-gold { background: var(--gold); color: #000; border-color: var(--gold); }
+    .btn-gold:hover { background: #e6b800; border-color: #e6b800; }
+    .btn-danger { background: rgba(239,68,68,0.15); color: var(--danger); border-color: rgba(239,68,68,0.3); }
+    .btn-danger:hover { background: rgba(239,68,68,0.25); }
+
+    .match-list { display: flex; flex-direction: column; gap: 8px; }
+    .match-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .match-teams { flex: 1; font-weight: 700; font-size: 14px; }
+    .match-score-badge {
+      padding: 3px 10px;
+      background: rgba(59,130,246,0.15);
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 100px;
+      font-size: 13px; font-weight: 800; color: var(--accent);
+    }
+    .match-stage-badge {
+      padding: 3px 10px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 100px;
+      font-size: 11px; font-weight: 600; color: var(--muted2);
+    }
+    .match-pts-info { font-size: 12px; color: var(--accent2); font-weight: 600; }
+    .match-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 4px; border-radius: 6px; transition: color 0.12s; }
+    .match-del:hover { color: var(--danger); }
+
+    /* ── Groups view ── */
+    .groups-grid { display: flex; flex-direction: column; gap: 16px; }
+    .group-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+    .group-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .group-name { font-size: 17px; font-weight: 800; flex: 1; }
+    .group-pts-big { font-size: 22px; font-weight: 900; color: var(--gold); }
+    .group-countries {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 8px;
+    }
+    .gc-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .gc-flag { font-size: 22px; }
+    .gc-name { font-size: 13px; font-weight: 600; }
+    .gc-pts { font-size: 12px; color: var(--accent2); font-weight: 700; }
+
+    /* ── Setup ── */
+    .setup-grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 800px) { .setup-grid { grid-template-columns: 1fr; } }
+    .setup-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+    .setup-input-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .text-input {
+      flex: 1; height: 40px; padding: 0 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border-hi);
+      border-radius: var(--radius);
+      color: var(--text); font-size: 14px; font-family: 'Inter', sans-serif;
+      outline: none; transition: border-color 0.15s;
+    }
+    .text-input:focus { border-color: var(--accent); }
+    .friend-list-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+    }
+    .friend-list-item:last-child { border-bottom: none; }
+
+    .assign-table { width: 100%; border-collapse: collapse; }
+    .assign-table th {
+      text-align: left; padding: 8px 12px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .assign-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .assign-table tr:last-child td { border-bottom: none; }
+    .assign-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .assign-select {
+      height: 34px; padding: 0 10px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border-hi);
+      border-radius: 8px;
+      color: var(--text); font-size: 13px; font-family: 'Inter', sans-serif;
+      appearance: none; outline: none; min-width: 140px;
+    }
+    .assign-select option { background: #1e293b; }
+
+    /* ── Empty ── */
+    .empty {
+      text-align: center; padding: 40px 20px;
+      color: var(--muted); font-size: 14px;
+    }
+    .empty-icon { font-size: 32px; margin-bottom: 10px; }
+
+    /* ── Toasts ── */
+    #toast-container {
+      position: fixed; bottom: 24px; right: 24px;
+      display: flex; flex-direction: column; gap: 8px;
+      z-index: 999;
+    }
+    .toast {
+      padding: 10px 16px;
+      background: var(--accent2); color: #000;
+      border-radius: 10px; font-weight: 700; font-size: 13px;
+      animation: slideIn 0.2s ease;
+    }
+    @keyframes slideIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ── Responsive ── */
+    @media (max-width: 700px) {
+      .lb-header, .lb-row { grid-template-columns: 44px 1fr 70px; }
+      .lb-countries-count, .lb-matches { display: none; }
+      .header-nav .nav-btn span { display: none; }
+    }
+    @media (max-width: 500px) {
+      .main { padding: 16px; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ── Points badge ── */
+    .pts-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: rgba(245,197,24,0.15);
+      border: 1px solid rgba(245,197,24,0.3);
+      border-radius: 100px;
+      font-size: 12px; font-weight: 700; color: var(--gold);
+    }
+
+    /* ── Sync bar ── */
+    .sync-bar {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 14px 20px;
+      margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .sync-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--muted); flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .sync-dot.live  { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); animation: pulse 1.5s infinite; }
+    .sync-dot.error { background: var(--danger); }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    .sync-status { font-size: 13px; color: var(--muted2); flex: 1; }
+    .sync-status strong { color: var(--text); }
+    .espn-badge {
+      padding: 2px 8px;
+      background: rgba(239,68,68,0.15);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 100px;
+      font-size: 11px; font-weight: 700; color: #f87171;
+    }
+    .live-badge {
+      padding: 2px 8px;
+      background: rgba(16,185,129,0.15);
+      border: 1px solid rgba(16,185,129,0.3);
+      border-radius: 100px;
+      font-size: 11px; font-weight: 700; color: var(--accent2);
+      animation: pulse 1.5s infinite;
+    }
+    .match-item.live-match { border-color: rgba(16,185,129,0.35); }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">⚽</div>
+      <div>
+        <div class="logo-text">WC Draft Tracker</div>
+        <div class="logo-sub">FIFA World Cup 2026</div>
+      </div>
+    </div>
+    <nav class="header-nav">
+      <button class="nav-btn active" onclick="showTab('leaderboard', this)">🏆 <span>Leaderboard</span></button>
+      <button class="nav-btn" onclick="showTab('matches', this)">⚽ <span>Matches</span></button>
+      <button class="nav-btn" onclick="showTab('groups', this)">👥 <span>Groups</span></button>
+      <button class="nav-btn" onclick="showTab('setup', this)">⚙️ <span>Setup</span></button>
+    </nav>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- ── LEADERBOARD ── -->
+  <div id="tab-leaderboard" class="view active">
+    <div class="stats-row" id="stats-row"></div>
+
+    <div class="section-label">Standings</div>
+    <div class="lb-table">
+      <div class="lb-header">
+        <div>#</div>
+        <div>Player</div>
+        <div style="text-align:right">Points</div>
+        <div style="text-align:center">Countries</div>
+        <div style="text-align:center">Matches</div>
+      </div>
+      <div id="lb-body"></div>
+    </div>
+
+    <div class="section-label">Player cards</div>
+    <div id="friend-cards" class="friend-grid"></div>
+  </div>
+
+  <!-- ── MATCHES ── -->
+  <div id="tab-matches" class="view">
+    <div class="match-form-card">
+      <div class="section-label">Log a result</div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Home team</label>
+          <select id="team-a"></select>
+        </div>
+        <div class="form-field" style="flex:0; min-width:0;">
+          <label>Score</label>
+          <div class="score-row">
+            <input type="number" id="score-a" min="0" value="0" />
+            <span class="score-sep">–</span>
+            <input type="number" id="score-b" min="0" value="0" />
+          </div>
+        </div>
+        <div class="form-field">
+          <label>Away team</label>
+          <select id="team-b"></select>
+        </div>
+        <div class="form-field" style="flex:0; min-width:150px;">
+          <label>Stage</label>
+          <select id="match-stage">
+            <option>Group stage</option>
+            <option>Round of 32</option>
+            <option>Round of 16</option>
+            <option>Quarter-final</option>
+            <option>Semi-final</option>
+            <option>Final</option>
+          </select>
+        </div>
+        <div class="form-field" style="flex:0; align-self:flex-end;">
+          <button class="btn btn-gold" onclick="logMatch()">＋ Add result</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sync-bar">
+      <div class="sync-dot" id="sync-dot"></div>
+      <div class="sync-status" id="sync-status">Not synced yet</div>
+      <button class="btn" id="sync-btn" onclick="triggerSync()">⟳ Sync ESPN scores</button>
+    </div>
+
+    <div id="live-matches-section" style="display:none; margin-bottom:20px;">
+      <div class="section-label">🔴 Live now</div>
+      <div id="live-matches" class="match-list" style="margin-bottom:0;"></div>
+    </div>
+
+    <div class="section-label">Match history (<span id="match-count">0</span>)</div>
+    <div id="match-log" class="match-list"></div>
+  </div>
+
+  <!-- ── GROUPS ── -->
+  <div id="tab-groups" class="view">
+    <div id="groups-view" class="groups-grid"></div>
+  </div>
+
+  <!-- ── SETUP ── -->
+  <div id="tab-setup" class="view">
+    <div class="setup-grid">
+      <div>
+        <div class="setup-card" style="margin-bottom:16px">
+          <div class="section-label">Add friends</div>
+          <div class="setup-input-row">
+            <input class="text-input" id="friend-input" type="text" placeholder="Friend's name…" />
+            <button class="btn btn-gold" onclick="addFriend()">Add</button>
+          </div>
+          <div id="friend-list-setup"></div>
+        </div>
+      </div>
+      <div class="setup-card">
+        <div class="section-label">Assign countries</div>
+        <table class="assign-table">
+          <thead><tr><th>Country</th><th>Flag</th><th>Owner</th></tr></thead>
+          <tbody id="assign-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast-container"></div>
+
+<script>
+const COUNTRIES = [
+  {name:'Spain',       flag:'🇪🇸'},
+  {name:'France',      flag:'🇫🇷'},
+  {name:'England',     flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿'},
+  {name:'Brazil',      flag:'🇧🇷'},
+  {name:'Argentina',   flag:'🇦🇷'},
+  {name:'Portugal',    flag:'🇵🇹'},
+  {name:'Germany',     flag:'🇩🇪'},
+  {name:'Colombia',    flag:'🇨🇴'},
+  {name:'Netherlands', flag:'🇳🇱'},
+  {name:'Turkey',      flag:'🇹🇷'},
+  {name:'Croatia',     flag:'🇭🇷'},
+  {name:'Uruguay',     flag:'🇺🇾'},
+  {name:'Morocco',     flag:'🇲🇦'},
+  {name:'Mexico',      flag:'🇲🇽'},
+  {name:'Belgium',     flag:'🇧🇪'},
+  {name:'Norway',      flag:'🇳🇴'},
+  {name:'Egypt',       flag:'🇪🇬'},
+  {name:'USA',         flag:'🇺🇸'},
+  {name:'Switzerland', flag:'🇨🇭'},
+  {name:'Ecuador',     flag:'🇪🇨'},
+  {name:'Japan',       flag:'🎑'},
+  {name:'Senegal',     flag:'🇸🇳'},
+  {name:'Australia',   flag:'🇦🇺'},
+  {name:'Korea',       flag:'🇰🇷'},
+  {name:'Denmark',     flag:'🇩🇰'},
+  {name:'Sweden',      flag:'🇸🇪'},
+  {name:'Paraguay',    flag:'🇵🇾'},
+];
+
+const AVATAR_PALETTE = [
+  {bg:'#1e3a5f', text:'#60a5fa'},
+  {bg:'#14532d', text:'#4ade80'},
+  {bg:'#713f12', text:'#fbbf24'},
+  {bg:'#4c0519', text:'#f87171'},
+  {bg:'#3b0764', text:'#c084fc'},
+  {bg:'#134e4a', text:'#2dd4bf'},
+  {bg:'#1e1b4b', text:'#818cf8'},
+  {bg:'#431407', text:'#fb923c'},
+];
+
+const DEFAULT_STATE = {
+  friends: ['Eli','Manny','Al','Carlos','Leury','Jae','Mikey','Kingsley','Danny'],
+  assignments: {
+    'Spain':'Eli','France':'Manny','England':'Al','Brazil':'Carlos',
+    'Argentina':'Leury','Portugal':'Jae','Germany':'Mikey','Colombia':'Kingsley',
+    'Netherlands':'Danny','Turkey':'Danny','Croatia':'Kingsley','Uruguay':'Mikey',
+    'Morocco':'Jae','Mexico':'Leury','Belgium':'Carlos','Norway':'Al',
+    'Egypt':'Manny','USA':'Eli','Switzerland':'Eli','Ecuador':'Manny',
+    'Japan':'Al','Senegal':'Carlos','Australia':'Leury','Korea':'Jae',
+    'Denmark':'Kingsley','Sweden':'Danny','Paraguay':'Mikey'
+  },
+  matches: []
+};
+
+let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+
+function save() {
+  try { localStorage.setItem('wc_draft_v3', JSON.stringify(state)); } catch(e) {}
+}
+function load() {
+  try { const d = localStorage.getItem('wc_draft_v3'); if (d) state = JSON.parse(d); } catch(e) {}
+}
+load();
+
+// ── ESPN auto-sync ──────────────────────────────────────────
+const ESPN_URL = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
+
+const ESPN_NAME_MAP = {
+  'United States':          'USA',
+  'United States of America':'USA',
+  'Korea Republic':         'Korea',
+  'South Korea':            'Korea',
+  'Republic of Korea':      'Korea',
+  'IR Iran':                'Iran',
+  'Côte d\'Ivoire':         'Ivory Coast',
+  'Netherlands':            'Netherlands',
+};
+
+function espnToOurs(name) {
+  return ESPN_NAME_MAP[name] || name;
+}
+
+function stageFromESPN(event) {
+  const note = (event.competitions?.[0]?.notes || []).map(n => n.headline || '').join(' ').toLowerCase();
+  const name = (event.name || '').toLowerCase();
+  if (note.includes('final') && !note.includes('semi') && !note.includes('quarter')) return 'Final';
+  if (note.includes('semi')) return 'Semi-final';
+  if (note.includes('quarter')) return 'Quarter-final';
+  if (note.includes('round of 16')) return 'Round of 16';
+  if (note.includes('round of 32')) return 'Round of 32';
+  return 'Group stage';
+}
+
+let lastSyncTime = null;
+let syncInterval = null;
+
+async function syncScores() {
+  const dot = document.getElementById('sync-dot');
+  const statusEl = document.getElementById('sync-status');
+  const btn = document.getElementById('sync-btn');
+  if (dot) { dot.className = 'sync-dot live'; }
+  if (statusEl) statusEl.innerHTML = 'Fetching from ESPN…';
+  if (btn) btn.disabled = true;
+
+  const today = new Date();
+  const datesToFetch = [];
+  for (let i = 7; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    datesToFetch.push(d.toISOString().slice(0,10).replace(/-/g,''));
+  }
+
+  let newCount = 0;
+  let liveCount = 0;
+  let errorOccurred = false;
+  const seenEspnIds = new Set(state.matches.filter(m => m.espnId).map(m => m.espnId));
+
+  state.liveMatches = [];
+
+  for (const date of datesToFetch) {
+    try {
+      const res = await fetch(`${ESPN_URL}?dates=${date}`);
+      if (!res.ok) continue;
+      const data = await res.json();
+      for (const event of (data.events || [])) {
+        const comp = event.competitions?.[0];
+        if (!comp) continue;
+        const statusType = comp.status?.type || {};
+        const isLive = !statusType.completed && statusType.state === 'in';
+        const isDone = statusType.completed;
+
+        const home = comp.competitors?.find(c => c.homeAway === 'home');
+        const away = comp.competitors?.find(c => c.homeAway === 'away');
+        if (!home || !away) continue;
+
+        const teamA = espnToOurs(home.team.displayName);
+        const teamB = espnToOurs(away.team.displayName);
+        const scoreA = parseInt(home.score) || 0;
+        const scoreB = parseInt(away.score) || 0;
+        const espnId = String(event.id);
+
+        const inDraft = COUNTRIES.some(c => c.name === teamA || c.name === teamB);
+
+        if (isLive && inDraft) {
+          state.liveMatches = state.liveMatches || [];
+          state.liveMatches.push({ teamA, teamB, scoreA, scoreB, clock: comp.status?.displayClock || 'Live' });
+          liveCount++;
+        }
+
+        if (isDone && inDraft && !seenEspnIds.has(espnId)) {
+          const stage = stageFromESPN(event);
+          state.matches.push({ id: Date.now() + Math.random(), espnId, teamA, teamB, scoreA, scoreB, stage, source: 'espn' });
+          seenEspnIds.add(espnId);
+          newCount++;
+        }
+      }
+    } catch(e) { errorOccurred = true; }
+  }
+
+  lastSyncTime = new Date();
+  if (newCount > 0) save();
+
+  const timeStr = lastSyncTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  if (dot) dot.className = errorOccurred ? 'sync-dot error' : 'sync-dot live';
+  if (statusEl) {
+    if (errorOccurred && newCount === 0) {
+      statusEl.innerHTML = `<strong>ESPN unreachable</strong> — check back when the tournament starts (June 11)`;
+      if (dot) dot.className = 'sync-dot error';
+    } else {
+      statusEl.innerHTML = `Last synced <strong>${timeStr}</strong>${newCount > 0 ? ` · +${newCount} new result${newCount>1?'s':''}` : ' · No new results'}${liveCount > 0 ? ` · <span style="color:var(--accent2)">⚡ ${liveCount} live</span>` : ''}`;
+    }
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '⟳ Sync ESPN scores'; }
+  render();
+}
+
+function triggerSync() {
+  syncScores();
+}
+
+// Auto-sync on load, then every 5 minutes
+syncScores();
+syncInterval = setInterval(syncScores, 5 * 60 * 1000);
+
+function initials(name) {
+  return name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+function avatarStyle(idx) {
+  const c = AVATAR_PALETTE[idx % AVATAR_PALETTE.length];
+  return `background:${c.bg};color:${c.text};`;
+}
+
+const ALIASES = {};
+
+function getCountryPts(country) {
+  const lookup = ALIASES[country] || country;
+  let pts = 0;
+  state.matches.forEach(m => {
+    const sa = +m.scoreA, sb = +m.scoreB;
+    const isA = m.teamA === lookup, isB = m.teamB === lookup;
+    if (!isA && !isB) return;
+    const mult = ['Round of 16','Quarter-final','Semi-final','Final'].includes(m.stage) ? 2 : 1;
+    if (isA) pts += (sa > sb ? 3 : sa === sb ? 1 : 0) * mult + sa;
+    else     pts += (sb > sa ? 3 : sa === sb ? 1 : 0) * mult + sb;
+  });
+  return pts;
+}
+
+function getFriendPts(fname) {
+  return COUNTRIES
+    .filter(c => state.assignments[c.name] === fname)
+    .reduce((s, c) => s + getCountryPts(c.name), 0);
+}
+
+function getFriendMatches(fname) {
+  const countries = COUNTRIES.filter(c => state.assignments[c.name] === fname).map(c => c.name);
+  return state.matches.filter(m => countries.includes(m.teamA) || countries.includes(m.teamB)).length;
+}
+
+function showTab(id, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  render();
+}
+
+function toast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 2800);
+}
+
+function render() {
+  renderStats();
+  renderLeaderboard();
+  renderFriendCards();
+  renderTeamSelects();
+  renderMatchLog();
+  renderGroups();
+  renderSetup();
+}
+
+function renderStats() {
+  const el = document.getElementById('stats-row');
+  if (!el) return;
+  const totalPts = state.friends.reduce((s, f) => s + getFriendPts(f), 0);
+  const leader = state.friends.length
+    ? [...state.friends].sort((a,b) => getFriendPts(b) - getFriendPts(a))[0]
+    : null;
+  const assigned = Object.keys(state.assignments).length;
+  el.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Total matches</div>
+      <div class="stat-value">${state.matches.length}</div>
+      <div class="stat-sub">results logged</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Points scored</div>
+      <div class="stat-value gold">${totalPts}</div>
+      <div class="stat-sub">across all players</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Countries</div>
+      <div class="stat-value">${assigned}<span style="font-size:16px;color:var(--muted)">/${COUNTRIES.length}</span></div>
+      <div class="stat-sub">assigned</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Current leader</div>
+      <div class="stat-value" style="font-size:20px;">${leader || '—'}</div>
+      <div class="stat-sub">${leader ? getFriendPts(leader) + ' pts' : 'no data yet'}</div>
+    </div>`;
+}
+
+function renderLeaderboard() {
+  const el = document.getElementById('lb-body');
+  if (!el) return;
+  if (!state.friends.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">👤</div>Add friends in Setup to get started.</div>';
+    return;
+  }
+  const sorted = [...state.friends].sort((a, b) => getFriendPts(b) - getFriendPts(a));
+  el.innerHTML = sorted.map((f, i) => {
+    const pts = getFriendPts(f);
+    const matches = getFriendMatches(f);
+    const countries = COUNTRIES.filter(c => state.assignments[c.name] === f);
+    const rankClass = i === 0 ? 'first' : i === 1 ? 'second' : i === 2 ? 'third' : '';
+    const badgeClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-n';
+    const rankLabel = i === 0 ? '1' : i === 1 ? '2' : i === 2 ? '3' : i + 1;
+    const fidx = state.friends.indexOf(f);
+    return `<div class="lb-row ${rankClass}">
+      <div><span class="rank-badge ${badgeClass}">${rankLabel}</span></div>
+      <div class="lb-player">
+        <div class="avatar" style="${avatarStyle(fidx)}">${initials(f)}</div>
+        <div>
+          <div class="lb-name">${f}</div>
+          <div class="lb-flags">${countries.map(c => c.flag).join(' ') || '<span style="color:var(--muted)">No countries assigned</span>'}</div>
+        </div>
+      </div>
+      <div style="text-align:right"><span class="lb-pts">${pts}</span><span style="font-size:12px;color:var(--muted);margin-left:3px">pts</span></div>
+      <div class="lb-countries-count">${countries.length}</div>
+      <div class="lb-matches">${matches}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderFriendCards() {
+  const el = document.getElementById('friend-cards');
+  if (!el) return;
+  if (!state.friends.length) { el.innerHTML = ''; return; }
+  el.innerHTML = state.friends.map((f, i) => {
+    const pts = getFriendPts(f);
+    const countries = COUNTRIES.filter(c => state.assignments[c.name] === f);
+    return `<div class="friend-card">
+      <div class="friend-card-header">
+        <div class="avatar" style="width:42px;height:42px;font-size:15px;${avatarStyle(i)}">${initials(f)}</div>
+        <div style="font-size:16px;font-weight:800;">${f}</div>
+        <div class="friend-card-pts">
+          <div class="pts-num">${pts}</div>
+          <div class="pts-label">pts</div>
+        </div>
+      </div>
+      <div class="country-chips">
+        ${countries.length
+          ? countries.map(c => {
+              const cp = getCountryPts(c.name);
+              return `<span class="chip">${c.flag} ${c.name}${cp > 0 ? ` <span class="chip-pts">${cp}</span>` : ''}</span>`;
+            }).join('')
+          : '<span style="color:var(--muted);font-size:13px;">No countries yet</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderTeamSelects() {
+  const ta = document.getElementById('team-a'), tb = document.getElementById('team-b');
+  if (!ta) return;
+  const opts = COUNTRIES.map(c => `<option value="${c.name}">${c.flag} ${c.name}</option>`).join('');
+  const pA = ta.value, pB = tb.value;
+  ta.innerHTML = opts; tb.innerHTML = opts;
+  if (pA) ta.value = pA;
+  if (pB) tb.value = pB;
+  else if (COUNTRIES.length > 1) tb.selectedIndex = 1;
+}
+
+function logMatch() {
+  const teamA = document.getElementById('team-a').value;
+  const teamB = document.getElementById('team-b').value;
+  const scoreA = parseInt(document.getElementById('score-a').value) || 0;
+  const scoreB = parseInt(document.getElementById('score-b').value) || 0;
+  const stage  = document.getElementById('match-stage').value;
+  if (teamA === teamB) { alert('Select two different teams.'); return; }
+  state.matches.push({ id: Date.now(), teamA, teamB, scoreA, scoreB, stage });
+  save(); render();
+  document.getElementById('score-a').value = 0;
+  document.getElementById('score-b').value = 0;
+  const fa = COUNTRIES.find(c => c.name === teamA);
+  const fb = COUNTRIES.find(c => c.name === teamB);
+  toast(`${fa ? fa.flag : ''} ${teamA} ${scoreA}–${scoreB} ${teamB} ${fb ? fb.flag : ''} logged!`);
+}
+
+function deleteMatch(id) {
+  state.matches = state.matches.filter(m => m.id !== id);
+  save(); render();
+}
+
+function matchResultText(m) {
+  const sa = +m.scoreA, sb = +m.scoreB;
+  const mult = ['Round of 16','Quarter-final','Semi-final','Final'].includes(m.stage) ? 2 : 1;
+  const ownerA = state.assignments[m.teamA];
+  const ownerB = state.assignments[m.teamB];
+  const pA = (sa > sb ? 3 : sa === sb ? 1 : 0) * mult + sa;
+  const pB = (sb > sa ? 3 : sa === sb ? 1 : 0) * mult + sb;
+  const parts = [];
+  if (ownerA) parts.push(`+${pA} ${ownerA}`);
+  if (ownerB) parts.push(`+${pB} ${ownerB}`);
+  return parts.join(' · ');
+}
+
+function renderMatchLog() {
+  const el = document.getElementById('match-log');
+  const cnt = document.getElementById('match-count');
+  if (!el) return;
+  if (cnt) cnt.textContent = state.matches.length;
+
+  const cF = n => COUNTRIES.find(c => c.name === n);
+
+  // Live matches section
+  const liveSection = document.getElementById('live-matches-section');
+  const liveEl = document.getElementById('live-matches');
+  const live = state.liveMatches || [];
+  if (liveSection && liveEl) {
+    if (live.length) {
+      liveSection.style.display = 'block';
+      liveEl.innerHTML = live.map(m => {
+        const fa = cF(m.teamA), fb = cF(m.teamB);
+        const ownerA = state.assignments[m.teamA];
+        const ownerB = state.assignments[m.teamB];
+        const owners = [ownerA, ownerB].filter(Boolean).join(' vs ');
+        return `<div class="match-item live-match">
+          <div class="match-teams">${fa ? fa.flag : ''} ${m.teamA} vs ${m.teamB} ${fb ? fb.flag : ''}</div>
+          <span class="match-score-badge">${m.scoreA} – ${m.scoreB}</span>
+          <span class="live-badge">⚡ ${m.clock}</span>
+          ${owners ? `<span class="match-pts-info">${owners}</span>` : ''}
+        </div>`;
+      }).join('');
+    } else {
+      liveSection.style.display = 'none';
+    }
+  }
+
+  if (!state.matches.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">⚽</div>No matches yet — scores will appear here automatically once the tournament starts.</div>';
+    return;
+  }
+
+  el.innerHTML = [...state.matches].reverse().map(m => {
+    const fa = cF(m.teamA), fb = cF(m.teamB);
+    const res = matchResultText(m);
+    const isEspn = m.source === 'espn';
+    const delBtn = isEspn ? '' : `<button class="match-del" onclick="deleteMatch(${m.id})" aria-label="Delete">✕</button>`;
+    return `<div class="match-item">
+      <div class="match-teams">${fa ? fa.flag : ''} ${m.teamA} vs ${m.teamB} ${fb ? fb.flag : ''}</div>
+      <span class="match-score-badge">${m.scoreA} – ${m.scoreB}</span>
+      <span class="match-stage-badge">${m.stage}</span>
+      ${isEspn ? '<span class="espn-badge">ESPN</span>' : ''}
+      ${res ? `<span class="match-pts-info">${res}</span>` : ''}
+      ${delBtn}
+    </div>`;
+  }).join('');
+}
+
+function renderGroups() {
+  const el = document.getElementById('groups-view');
+  if (!el) return;
+  if (!state.friends.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">👥</div>Add friends in Setup to see groups.</div>';
+    return;
+  }
+  const sorted = [...state.friends].sort((a,b) => getFriendPts(b) - getFriendPts(a));
+  el.innerHTML = sorted.map((f, i) => {
+    const fidx = state.friends.indexOf(f);
+    const countries = COUNTRIES.filter(c => state.assignments[c.name] === f);
+    const pts = getFriendPts(f);
+    return `<div class="group-card">
+      <div class="group-header">
+        <div class="avatar" style="width:40px;height:40px;font-size:14px;${avatarStyle(fidx)}">${initials(f)}</div>
+        <div class="group-name">${f}</div>
+        <div>
+          <div class="group-pts-big">${pts}</div>
+          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em">pts</div>
+        </div>
+      </div>
+      <div class="group-countries">
+        ${countries.length
+          ? countries.map(c => {
+              const cp = getCountryPts(c.name);
+              return `<div class="gc-item">
+                <span class="gc-flag">${c.flag}</span>
+                <div>
+                  <div class="gc-name">${c.name}</div>
+                  <div class="gc-pts">${cp} pts</div>
+                </div>
+              </div>`;
+            }).join('')
+          : '<div style="color:var(--muted);font-size:13px;grid-column:1/-1">No countries assigned yet.</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addFriend() {
+  const inp = document.getElementById('friend-input');
+  const name = inp.value.trim();
+  if (!name || state.friends.includes(name)) return;
+  state.friends.push(name);
+  save(); render(); inp.value = '';
+  toast(`${name} added!`);
+}
+
+function removeFriend(name) {
+  if (!confirm(`Remove ${name}? Their country assignments will also be cleared.`)) return;
+  state.friends = state.friends.filter(f => f !== name);
+  Object.keys(state.assignments).forEach(c => { if (state.assignments[c] === name) delete state.assignments[c]; });
+  save(); render();
+}
+
+function renderSetup() {
+  const fl = document.getElementById('friend-list-setup');
+  if (!fl) return;
+  fl.innerHTML = state.friends.length
+    ? state.friends.map((f, i) => `
+        <div class="friend-list-item">
+          <div class="avatar" style="width:30px;height:30px;font-size:11px;${avatarStyle(i)}">${initials(f)}</div>
+          <span style="flex:1;font-size:14px;font-weight:600;">${f}</span>
+          <button class="btn btn-danger" style="height:32px;padding:0 12px;font-size:12px;" onclick="removeFriend('${f.replace(/'/g,"\\'")}')">Remove</button>
+        </div>`).join('')
+    : '<div style="color:var(--muted);font-size:13px;padding:8px 0">No friends added yet.</div>';
+
+  const tbody = document.getElementById('assign-table');
+  if (!tbody) return;
+  const baseOpts = ['<option value="">— unassigned —</option>',
+    ...state.friends.map(f => `<option value="${f}">${f}</option>`)].join('');
+  tbody.innerHTML = COUNTRIES.map(c => {
+    const assigned = state.assignments[c.name] || '';
+    const opts = baseOpts.replace(`value="${assigned}"`, `value="${assigned}" selected`);
+    return `<tr>
+      <td style="font-weight:600;font-size:13px;">${c.name}</td>
+      <td style="font-size:20px;">${c.flag}</td>
+      <td><select class="assign-select" onchange="assignCountry('${c.name}', this.value)">${opts}</select></td>
+    </tr>`;
+  }).join('');
+}
+
+function assignCountry(country, friend) {
+  if (friend) state.assignments[country] = friend;
+  else delete state.assignments[country];
+  save(); render();
+}
+
+render();
+
+document.getElementById('friend-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addFriend();
+});
+</script>
+</body>
+</html>
