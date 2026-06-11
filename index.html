@@ -398,6 +398,39 @@
       .stats-row { grid-template-columns: 1fr 1fr; }
     }
 
+    /* ── Breakdown ── */
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .breakdown-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 18px 20px;
+    }
+    .breakdown-header {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+    }
+    .breakdown-total {
+      margin-left: auto; text-align: right;
+    }
+    .breakdown-total-num { font-size: 20px; font-weight: 900; color: var(--gold); }
+    .breakdown-total-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+    .breakdown-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 10px;
+    }
+    .breakdown-row:last-child { margin-bottom: 0; }
+    .breakdown-flag { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
+    .breakdown-country { font-size: 13px; font-weight: 600; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .breakdown-bar-wrap { flex: 2; height: 6px; background: rgba(255,255,255,0.08); border-radius: 100px; overflow: hidden; }
+    .breakdown-bar { height: 100%; border-radius: 100px; background: var(--gold); transition: width 0.4s ease; }
+    .breakdown-bar.zero { background: rgba(255,255,255,0.12); }
+    .breakdown-pts { font-size: 13px; font-weight: 800; color: var(--text); min-width: 32px; text-align: right; }
+    .breakdown-pts.zero { color: var(--muted); font-weight: 500; }
+    .breakdown-pct { font-size: 11px; color: var(--muted); min-width: 32px; text-align: right; }
+
     /* ── Hero banner ── */
     .hero {
       background: linear-gradient(135deg, #0a0e1a 0%, #111827 40%, #0f1d35 70%, #0a0e1a 100%);
@@ -649,6 +682,9 @@
 
     <div class="section-label">Player cards</div>
     <div id="friend-cards" class="friend-grid"></div>
+
+    <div class="section-label" style="margin-top:28px;">Points breakdown by country</div>
+    <div id="breakdown-grid" class="breakdown-grid"></div>
   </div>
 
   <!-- ── MATCHES ── -->
@@ -1108,10 +1144,54 @@ function render() {
   renderStats();
   renderLeaderboard();
   renderFriendCards();
+  renderBreakdown();
   renderTeamSelects();
   renderMatchLog();
   renderGroups();
   renderSetup();
+}
+
+function renderBreakdown() {
+  const el = document.getElementById('breakdown-grid');
+  if (!el) return;
+  if (!state.friends.length) { el.innerHTML = ''; return; }
+
+  const sorted = [...state.friends].sort((a, b) => getFriendPts(b) - getFriendPts(a));
+  const maxPts = Math.max(1, ...COUNTRIES.map(c => getCountryPts(c.name)));
+
+  el.innerHTML = sorted.map((f, i) => {
+    const fidx = state.friends.indexOf(f);
+    const total = getFriendPts(f);
+    const countries = COUNTRIES.filter(c => state.assignments[c.name] === f)
+      .sort((a, b) => getCountryPts(b.name) - getCountryPts(a.name));
+
+    const rows = countries.map(c => {
+      const pts = getCountryPts(c.name);
+      const barPct = Math.round((pts / maxPts) * 100);
+      const pct = total > 0 ? Math.round((pts / total) * 100) : 0;
+      return `<div class="breakdown-row">
+        <span class="breakdown-flag">${c.flag}</span>
+        <span class="breakdown-country">${c.name}</span>
+        <div class="breakdown-bar-wrap">
+          <div class="breakdown-bar ${pts === 0 ? 'zero' : ''}" style="width:${barPct}%"></div>
+        </div>
+        <span class="breakdown-pts ${pts === 0 ? 'zero' : ''}">${pts}</span>
+        <span class="breakdown-pct">${total > 0 ? pct + '%' : '—'}</span>
+      </div>`;
+    }).join('');
+
+    return `<div class="breakdown-card">
+      <div class="breakdown-header">
+        <div class="avatar" style="width:34px;height:34px;font-size:12px;${avatarStyle(fidx)}">${initials(f)}</div>
+        <span style="font-size:15px;font-weight:800;">${f}</span>
+        <div class="breakdown-total">
+          <div class="breakdown-total-num">${total}</div>
+          <div class="breakdown-total-label">pts total</div>
+        </div>
+      </div>
+      ${rows || '<div style="font-size:13px;color:var(--muted)">No countries assigned</div>'}
+    </div>`;
+  }).join('');
 }
 
 function renderStats() {
