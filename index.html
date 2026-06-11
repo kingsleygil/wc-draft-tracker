@@ -442,6 +442,71 @@
       .trophy-svg { width: 60px; }
     }
 
+    /* ── Schedule ── */
+    .schedule-loading { text-align:center; padding:40px; color:var(--muted); font-size:14px; }
+    .schedule-day { margin-bottom: 28px; }
+    .schedule-day-header {
+      font-size: 13px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--gold);
+      padding: 8px 0 10px; border-bottom: 1px solid var(--border);
+      margin-bottom: 10px; display: flex; align-items: center; gap: 10px;
+    }
+    .schedule-day-count {
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      background: rgba(255,255,255,0.06); border-radius: 100px;
+      padding: 2px 8px;
+    }
+    .schedule-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 8px;
+    }
+    .schedule-match {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px 14px;
+      display: flex; flex-direction: column; gap: 8px;
+      transition: border-color 0.15s;
+    }
+    .schedule-match.drafted { border-color: rgba(245,197,24,0.4); background: rgba(245,197,24,0.04); }
+    .schedule-match.match-live { border-color: rgba(16,185,129,0.4); }
+    .schedule-teams {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .schedule-team {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 700; flex: 1;
+    }
+    .schedule-team.away { flex-direction: row-reverse; text-align: right; }
+    .schedule-team-flag { font-size: 18px; flex-shrink: 0; }
+    .schedule-score {
+      font-size: 15px; font-weight: 900; color: var(--text);
+      min-width: 44px; text-align: center;
+    }
+    .schedule-score.upcoming { color: var(--muted); font-size: 12px; font-weight: 600; }
+    .schedule-meta {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .status-pill {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
+      text-transform: uppercase; padding: 2px 7px; border-radius: 100px;
+    }
+    .status-final    { background: rgba(255,255,255,0.08); color: var(--muted2); }
+    .status-live     { background: rgba(16,185,129,0.15); color: var(--accent2); border: 1px solid rgba(16,185,129,0.3); animation: pulse 1.5s infinite; }
+    .status-upcoming { background: rgba(59,130,246,0.12); color: #60a5fa; }
+    .schedule-venue  { font-size: 11px; color: var(--muted); flex: 1; }
+    .draft-owners    { font-size: 11px; color: var(--gold); font-weight: 600; }
+    .sched-stage-filter {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px;
+    }
+    .filter-btn {
+      padding: 5px 12px; border-radius: 100px; font-size: 12px; font-weight: 600;
+      border: 1px solid var(--border-hi); background: rgba(255,255,255,0.04);
+      color: var(--muted2); cursor: pointer; font-family: 'Inter', sans-serif;
+      transition: all 0.15s;
+    }
+    .filter-btn:hover { color: var(--text); background: rgba(255,255,255,0.08); }
+    .filter-btn.active { background: var(--gold); color: #000; border-color: var(--gold); }
+
     /* ── Points badge ── */
     .pts-badge {
       display: inline-block;
@@ -502,6 +567,7 @@
       <button class="nav-btn active" onclick="showTab('leaderboard', this)">🏆 <span>Leaderboard</span></button>
       <button class="nav-btn" onclick="showTab('matches', this)">⚽ <span>Matches</span></button>
       <button class="nav-btn" onclick="showTab('groups', this)">👥 <span>Groups</span></button>
+      <button class="nav-btn" onclick="showTab('schedule', this)">📅 <span>Schedule</span></button>
       <button class="nav-btn" onclick="showTab('setup', this)">⚙️ <span>Setup</span></button>
     </nav>
   </div>
@@ -636,6 +702,12 @@
 
     <div class="section-label">Match history (<span id="match-count">0</span>)</div>
     <div id="match-log" class="match-list"></div>
+  </div>
+
+  <!-- ── SCHEDULE ── -->
+  <div id="tab-schedule" class="view">
+    <div class="sched-stage-filter" id="sched-filters"></div>
+    <div id="schedule-body"><div class="schedule-loading">Loading schedule from ESPN…</div></div>
   </div>
 
   <!-- ── GROUPS ── -->
@@ -856,6 +928,127 @@ function triggerSync() {
 syncScores();
 syncInterval = setInterval(syncScores, 5 * 60 * 1000);
 
+// ── Schedule fetch ──────────────────────────────────────────
+let scheduleCache = [];
+let scheduleFilter = 'All';
+
+async function fetchSchedule() {
+  const el = document.getElementById('schedule-body');
+  if (!el) return;
+  el.innerHTML = '<div class="schedule-loading">Loading schedule from ESPN…</div>';
+
+  const allEvents = [];
+  // Fetch full tournament in chunks (ESPN returns ~30 days per call)
+  const ranges = ['20260611-20260630', '20260701-20260719'];
+  for (const range of ranges) {
+    try {
+      const res = await fetch(`${ESPN_URL}?dates=${range}&limit=200`);
+      if (!res.ok) continue;
+      const data = await res.json();
+      allEvents.push(...(data.events || []));
+    } catch(e) {}
+  }
+
+  if (!allEvents.length) {
+    el.innerHTML = '<div class="schedule-loading">Schedule not available yet — check back closer to kick-off.</div>';
+    return;
+  }
+
+  scheduleCache = allEvents.map(event => {
+    const comp = event.competitions?.[0];
+    const home = comp?.competitors?.find(c => c.homeAway === 'home');
+    const away = comp?.competitors?.find(c => c.homeAway === 'away');
+    const statusType = comp?.status?.type || {};
+    const date = new Date(event.date);
+    return {
+      id: event.id,
+      date,
+      dateStr: date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }),
+      time: date.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' }),
+      teamA: espnToOurs(home?.team?.displayName || ''),
+      teamB: espnToOurs(away?.team?.displayName || ''),
+      flagA: COUNTRIES.find(c => c.name === espnToOurs(home?.team?.displayName || ''))?.flag || '',
+      flagB: COUNTRIES.find(c => c.name === espnToOurs(away?.team?.displayName || ''))?.flag || '',
+      scoreA: home?.score ?? '–',
+      scoreB: away?.score ?? '–',
+      isLive: !statusType.completed && statusType.state === 'in',
+      isDone: statusType.completed,
+      clock: comp?.status?.displayClock || '',
+      stage: stageFromESPN(event),
+      venue: comp?.venue?.fullName || '',
+      city: comp?.venue?.address?.city || '',
+    };
+  }).sort((a, b) => a.date - b.date);
+
+  renderSchedule();
+}
+
+function renderSchedule() {
+  const el = document.getElementById('schedule-body');
+  const filterEl = document.getElementById('sched-filters');
+  if (!el || !scheduleCache.length) return;
+
+  const stages = ['All', ...new Set(scheduleCache.map(m => m.stage))];
+  if (filterEl) {
+    filterEl.innerHTML = stages.map(s =>
+      `<button class="filter-btn ${scheduleFilter === s ? 'active' : ''}" onclick="setSchedFilter('${s}')">${s}</button>`
+    ).join('');
+  }
+
+  const filtered = scheduleFilter === 'All' ? scheduleCache : scheduleCache.filter(m => m.stage === scheduleFilter);
+
+  const byDay = {};
+  filtered.forEach(m => {
+    if (!byDay[m.dateStr]) byDay[m.dateStr] = [];
+    byDay[m.dateStr].push(m);
+  });
+
+  el.innerHTML = Object.entries(byDay).map(([day, matches]) => {
+    const cards = matches.map(m => {
+      const ownerA = state.assignments[m.teamA];
+      const ownerB = state.assignments[m.teamB];
+      const isDrafted = ownerA || ownerB;
+      const draftInfo = [ownerA && `${m.teamA} → ${ownerA}`, ownerB && `${m.teamB} → ${ownerB}`].filter(Boolean).join(' · ');
+      const statusClass = m.isDone ? 'status-final' : m.isLive ? 'status-live' : 'status-upcoming';
+      const statusLabel = m.isDone ? 'Final' : m.isLive ? `Live ${m.clock}` : m.time;
+      const scoreHtml = m.isDone || m.isLive
+        ? `<span class="schedule-score">${m.scoreA} – ${m.scoreB}</span>`
+        : `<span class="schedule-score upcoming">vs</span>`;
+      return `<div class="schedule-match ${isDrafted ? 'drafted' : ''} ${m.isLive ? 'match-live' : ''}">
+        <div class="schedule-teams">
+          <div class="schedule-team">
+            <span class="schedule-team-flag">${m.flagA}</span>
+            <span>${m.teamA}</span>
+          </div>
+          ${scoreHtml}
+          <div class="schedule-team away">
+            <span class="schedule-team-flag">${m.flagB}</span>
+            <span>${m.teamB}</span>
+          </div>
+        </div>
+        <div class="schedule-meta">
+          <span class="status-pill ${statusClass}">${statusLabel}</span>
+          ${m.city ? `<span class="schedule-venue">${m.city}</span>` : ''}
+          ${isDrafted ? `<span class="draft-owners">⭐ ${draftInfo}</span>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="schedule-day">
+      <div class="schedule-day-header">
+        ${day}
+        <span class="schedule-day-count">${matches.length} match${matches.length > 1 ? 'es' : ''}</span>
+      </div>
+      <div class="schedule-grid">${cards}</div>
+    </div>`;
+  }).join('');
+}
+
+function setSchedFilter(stage) {
+  scheduleFilter = stage;
+  renderSchedule();
+}
+
 function initials(name) {
   return name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
@@ -897,6 +1090,10 @@ function showTab(id, btn) {
   document.getElementById('tab-' + id).classList.add('active');
   if (btn) btn.classList.add('active');
   render();
+  if (id === 'schedule') {
+    if (!scheduleCache.length) fetchSchedule();
+    else renderSchedule();
+  }
 }
 
 function toast(msg) {
