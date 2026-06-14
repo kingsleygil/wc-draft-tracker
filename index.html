@@ -1148,27 +1148,38 @@ function triggerSync() {
 }
 
 // ── Top scorers ─────────────────────────────────────────────
+// Build top scorers by parsing goal events from each completed match summary
 async function fetchTopScorers() {
   try {
-    const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/leaders');
-    if (!res.ok) return;
-    const data = await res.json();
-    const scorersCategory = (data.leaders || []).find(l =>
-      (l.name || '').toLowerCase().includes('goal') || (l.displayName || '').toLowerCase().includes('goal')
-    );
-    if (!scorersCategory) return;
+    const completedIds = [...new Set(state.matches.map(m => m.espnId).filter(Boolean))];
+    if (!completedIds.length) return;
+
+    const goalMap = {}; // teamName -> { playerName -> count }
+
+    await Promise.all(completedIds.map(async (eventId) => {
+      try {
+        const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${eventId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        for (const ev of (data.keyEvents || [])) {
+          if (ev.type?.type !== 'goal' || !ev.scoringPlay) continue;
+          const teamName = espnToOurs(ev.team?.displayName || '');
+          if (!teamName) continue;
+          const scorer = (ev.participants || [])[0]?.athlete?.displayName;
+          if (!scorer) continue;
+          if (!goalMap[teamName]) goalMap[teamName] = {};
+          goalMap[teamName][scorer] = (goalMap[teamName][scorer] || 0) + 1;
+        }
+      } catch(e) {}
+    }));
 
     const byTeam = {};
-    for (const entry of (scorersCategory.leaders || [])) {
-      const athlete = entry.athlete || entry;
-      const name = athlete.displayName || athlete.fullName || '';
-      const teamName = espnToOurs(athlete.team?.displayName || athlete.team?.name || '');
-      const goals = Math.round(parseFloat(entry.displayValue) || entry.value || 0);
-      if (!byTeam[teamName]) {
-        byTeam[teamName] = { name, goals };
-      }
+    for (const [team, scorers] of Object.entries(goalMap)) {
+      const top = Object.entries(scorers).sort((a, b) => b[1] - a[1])[0];
+      if (top) byTeam[team] = { name: top[0], goals: top[1] };
     }
     state.topScorers = byTeam;
+    saveState();
     render();
   } catch(e) {}
 }
