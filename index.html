@@ -863,7 +863,8 @@ const DEFAULT_STATE = {
     'Japan':'Al','Senegal':'Carlos','Australia':'Leury','Korea':'Jae',
     'Denmark':'Kingsley','Sweden':'Danny','Paraguay':'Mikey'
   },
-  matches: []
+  matches: [],
+  topScorers: {}
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -990,11 +991,39 @@ async function syncScores() {
 
 function triggerSync() {
   syncScores();
+  fetchTopScorers();
+}
+
+// ── Top scorers ─────────────────────────────────────────────
+async function fetchTopScorers() {
+  try {
+    const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/leaders');
+    if (!res.ok) return;
+    const data = await res.json();
+    const scorersCategory = (data.leaders || []).find(l =>
+      (l.name || '').toLowerCase().includes('goal') || (l.displayName || '').toLowerCase().includes('goal')
+    );
+    if (!scorersCategory) return;
+
+    const byTeam = {};
+    for (const entry of (scorersCategory.leaders || [])) {
+      const athlete = entry.athlete || entry;
+      const name = athlete.displayName || athlete.fullName || '';
+      const teamName = espnToOurs(athlete.team?.displayName || athlete.team?.name || '');
+      const goals = Math.round(parseFloat(entry.displayValue) || entry.value || 0);
+      if (!byTeam[teamName]) {
+        byTeam[teamName] = { name, goals };
+      }
+    }
+    state.topScorers = byTeam;
+    render();
+  } catch(e) {}
 }
 
 // Auto-sync on load, then every 5 minutes
 syncScores();
-syncInterval = setInterval(syncScores, 5 * 60 * 1000);
+fetchTopScorers();
+syncInterval = setInterval(() => { syncScores(); fetchTopScorers(); }, 5 * 60 * 1000);
 
 // ── Schedule fetch ──────────────────────────────────────────
 let scheduleCache = [];
@@ -1343,6 +1372,16 @@ function renderLeaderboard() {
   }).join('');
 }
 
+function scorerLine(countryName) {
+  const s = (state.topScorers || {})[countryName];
+  if (!s) return `<div style="font-size:11px;color:var(--muted);margin-top:3px;font-style:italic;">No scorer yet</div>`;
+  return `<div style="display:flex;align-items:center;gap:5px;margin-top:3px;">
+    <span style="font-size:12px;">⚽</span>
+    <span style="font-size:11px;color:var(--muted2);font-weight:500;">${s.name}</span>
+    <span style="font-size:11px;font-weight:800;color:#10b981;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);border-radius:100px;padding:1px 7px;">${s.goals} goal${s.goals !== 1 ? 's' : ''}</span>
+  </div>`;
+}
+
 function renderFriendCards() {
   const el = document.getElementById('friend-cards');
   if (!el) return;
@@ -1359,11 +1398,18 @@ function renderFriendCards() {
           <div class="pts-label">pts</div>
         </div>
       </div>
-      <div class="country-chips">
+      <div style="display:flex;flex-direction:column;gap:0;">
         ${countries.length
           ? countries.map(c => {
               const cp = getCountryPts(c.name);
-              return `<span class="chip">${c.flag} ${c.name}${cp > 0 ? ` <span class="chip-pts">${cp}</span>` : ''}</span>`;
+              return `<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+                <span style="font-size:20px;flex-shrink:0;width:26px;text-align:center;">${c.flag}</span>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:13px;font-weight:700;color:var(--text);">${c.name}</div>
+                  ${scorerLine(c.name)}
+                </div>
+                <span style="font-size:14px;font-weight:900;color:${cp > 0 ? 'var(--text)' : 'var(--muted)'};flex-shrink:0;">${cp} <span style="font-size:10px;font-weight:600;color:var(--muted);">pts</span></span>
+              </div>`;
             }).join('')
           : '<span style="color:var(--muted);font-size:13px;">No countries yet</span>'}
       </div>
@@ -1499,6 +1545,7 @@ function renderGroups() {
                 <div>
                   <div class="gc-name">${c.name}</div>
                   <div class="gc-pts">${cp} pts</div>
+                  ${scorerLine(c.name)}
                 </div>
               </div>`;
             }).join('')
