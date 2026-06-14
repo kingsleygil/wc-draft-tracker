@@ -545,6 +545,23 @@
     /* ── Schedule ── */
     .schedule-loading { text-align:center; padding:40px; color:var(--muted); font-size:14px; }
     .schedule-day { margin-bottom: 28px; }
+    .schedule-day.today {
+      border: 2px solid var(--gold);
+      border-radius: var(--radius);
+      padding: 14px 14px 10px;
+      background: rgba(245,197,24,0.04);
+      box-shadow: 0 0 0 4px rgba(245,197,24,0.08);
+      scroll-margin-top: 80px;
+    }
+    .schedule-day.today .schedule-day-header {
+      color: #fff;
+    }
+    .today-badge {
+      font-size: 10px; font-weight: 800; letter-spacing: 0.08em;
+      text-transform: uppercase; color: #111;
+      background: var(--gold); border-radius: 100px;
+      padding: 2px 8px; margin-left: 4px;
+    }
     .schedule-day-header {
       font-size: 13px; font-weight: 700; letter-spacing: 0.06em;
       text-transform: uppercase; color: var(--gold);
@@ -1258,6 +1275,8 @@ function renderSchedule() {
 
   const filtered = scheduleFilter === 'All' ? scheduleCache : scheduleCache.filter(m => m.stage === scheduleFilter);
 
+  const todayStr = new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+
   const byDay = {};
   filtered.forEach(m => {
     if (!byDay[m.dateStr]) byDay[m.dateStr] = [];
@@ -1265,6 +1284,7 @@ function renderSchedule() {
   });
 
   el.innerHTML = Object.entries(byDay).map(([day, matches]) => {
+    const isToday = day === todayStr;
     const cards = matches.map(m => {
       const ownerA = state.assignments[m.teamA];
       const ownerB = state.assignments[m.teamB];
@@ -1295,9 +1315,10 @@ function renderSchedule() {
       </div>`;
     }).join('');
 
-    return `<div class="schedule-day">
+    return `<div class="schedule-day ${isToday ? 'today' : ''}" ${isToday ? 'id="sched-today"' : ''}>
       <div class="schedule-day-header">
         ${day}
+        ${isToday ? '<span class="today-badge">Today</span>' : ''}
         <span class="schedule-day-count">${matches.length} match${matches.length > 1 ? 'es' : ''}</span>
       </div>
       <div class="schedule-grid">${cards}</div>
@@ -1352,9 +1373,16 @@ function showTab(id, btn) {
   if (btn) btn.classList.add('active');
   render();
   if (id === 'schedule') {
-    if (!scheduleCache.length) fetchSchedule();
-    else renderSchedule();
+    if (!scheduleCache.length) fetchSchedule().then(scrollToToday);
+    else { renderSchedule(); scrollToToday(); }
   }
+}
+
+function scrollToToday() {
+  setTimeout(() => {
+    const el = document.getElementById('sched-today');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
 }
 
 function toast(msg) {
