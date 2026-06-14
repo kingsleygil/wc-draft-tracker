@@ -668,6 +668,7 @@
       <button class="nav-btn" onclick="showTab('matches', this)">⚽ <span>Matches</span></button>
       <button class="nav-btn" onclick="showTab('groups', this)">👥 <span>Groups</span></button>
       <button class="nav-btn" onclick="showTab('schedule', this)">📅 <span>Schedule</span></button>
+      <button class="nav-btn" onclick="showTab('scoring', this)">📋 <span>Scoring</span></button>
       <button class="nav-btn" onclick="showTab('setup', this)">⚙️ <span>Setup</span></button>
     </nav>
   </div>
@@ -790,6 +791,138 @@
 
     <div class="section-label">Match history (<span id="match-count">0</span>)</div>
     <div id="match-log" class="match-list"></div>
+  </div>
+
+  <!-- ── SCORING ── -->
+  <div id="tab-scoring" class="view">
+
+    <div style="max-width:760px;">
+
+      <div class="section-label">How points are calculated</div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:28px;">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;">
+          <div style="width:42px;height:42px;border-radius:10px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#10b981;margin-bottom:12px;">W</div>
+          <div style="font-size:28px;font-weight:900;color:var(--text);">3 pts</div>
+          <div style="font-size:13px;font-weight:700;color:var(--muted2);margin-top:4px;">Win</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;">Your team wins the match</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;">
+          <div style="width:42px;height:42px;border-radius:10px;background:rgba(245,197,24,0.12);border:1px solid rgba(245,197,24,0.3);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:var(--gold);margin-bottom:12px;">D</div>
+          <div style="font-size:28px;font-weight:900;color:var(--text);">1 pt</div>
+          <div style="font-size:13px;font-weight:700;color:var(--muted2);margin-top:4px;">Draw</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;">Match ends level</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;">
+          <div style="width:42px;height:42px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px;">⚽</div>
+          <div style="font-size:28px;font-weight:900;color:var(--text);">+1 pt</div>
+          <div style="font-size:13px;font-weight:700;color:var(--muted2);margin-top:4px;">Per goal scored</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;">Every goal your team scores adds 1 extra point</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;">
+          <div style="width:42px;height:42px;border-radius:10px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#f87171;margin-bottom:12px;">×2</div>
+          <div style="font-size:28px;font-weight:900;color:var(--text);">Double</div>
+          <div style="font-size:13px;font-weight:700;color:var(--muted2);margin-top:4px;">Knockout multiplier</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;">All points doubled from Round of 16 onward</div>
+        </div>
+      </div>
+
+      <div class="section-label">Worked examples</div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:28px;">
+
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);background:rgba(255,255,255,0.06);padding:3px 9px;border-radius:100px;">Group stage</span>
+            <span style="font-size:14px;font-weight:700;color:var(--text);">Spain 🇪🇸 2 – 1 Morocco 🇲🇦</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius);padding:12px;">
+              <div style="font-size:12px;font-weight:700;color:#10b981;margin-bottom:8px;">🇪🇸 Spain owner (Eli)</div>
+              <div style="font-size:12px;color:var(--muted2);line-height:1.8;">Win → 3 pts<br>2 goals → +2 pts<br><span style="color:var(--gold);font-weight:800;">Total: 5 pts</span></div>
+            </div>
+            <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
+              <div style="font-size:12px;font-weight:700;color:var(--muted2);margin-bottom:8px;">🇲🇦 Morocco owner (Jae)</div>
+              <div style="font-size:12px;color:var(--muted2);line-height:1.8;">Loss → 0 pts<br>1 goal → +1 pt<br><span style="color:var(--gold);font-weight:800;">Total: 1 pt</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#f87171;background:rgba(239,68,68,0.1);padding:3px 9px;border-radius:100px;">Round of 16 — ×2</span>
+            <span style="font-size:14px;font-weight:700;color:var(--text);">Brazil 🇧🇷 3 – 0 Norway 🇳🇴</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius);padding:12px;">
+              <div style="font-size:12px;font-weight:700;color:#10b981;margin-bottom:8px;">🇧🇷 Brazil owner (Carlos)</div>
+              <div style="font-size:12px;color:var(--muted2);line-height:1.8;">Win → 3 pts<br>3 goals → +3 pts<br>Subtotal: 6 × 2 = <span style="color:var(--gold);font-weight:800;">12 pts</span></div>
+            </div>
+            <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
+              <div style="font-size:12px;font-weight:700;color:var(--muted2);margin-bottom:8px;">🇳🇴 Norway owner (Al)</div>
+              <div style="font-size:12px;color:var(--muted2);line-height:1.8;">Loss → 0 pts<br>0 goals → 0 pts<br>Subtotal: 0 × 2 = <span style="color:var(--gold);font-weight:800;">0 pts</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#f87171;background:rgba(239,68,68,0.1);padding:3px 9px;border-radius:100px;">Final — ×2</span>
+            <span style="font-size:14px;font-weight:700;color:var(--text);">Argentina 🇦🇷 2 – 2 France 🇫🇷 (AET)</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="background:rgba(245,197,24,0.05);border:1px solid rgba(245,197,24,0.2);border-radius:var(--radius);padding:12px;">
+              <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px;">🇦🇷 Argentina owner (Leury)</div>
+              <div style="font-size:12px;color:var(--muted2);line-height:1.8;">Draw → 1 pt<br>2 goals → +2 pts<br>Subtotal: 3 × 2 = <span style="color:var(--gold);font-weight:800;">6 pts</span></div>
+            </div>
+            <div style="background:rgba(245,197,24,0.05);border:1px solid rgba(245,197,24,0.2);border-radius:var(--radius);padding:12px;">
+              <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px;">🇫🇷 France owner (Manny)</div>
+              <div style="font-size:12px;color:var(--muted2);line-height:1.8;">Draw → 1 pt<br>2 goals → +2 pts<br>Subtotal: 3 × 2 = <span style="color:var(--gold);font-weight:800;">6 pts</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="section-label">Knockout stages &amp; multiplier</div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:28px;">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);padding:10px 16px;border-bottom:1px solid var(--border);">
+          <div>Stage</div><div style="text-align:center">Multiplier</div><div style="text-align:center">Win worth</div>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:11px 16px;border-bottom:1px solid var(--border);align-items:center;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);">Group stage</div>
+          <div style="text-align:center;font-size:13px;font-weight:900;color:var(--muted2);">×1</div>
+          <div style="text-align:center;font-size:13px;font-weight:800;color:var(--muted2);">3 pts</div>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:11px 16px;border-bottom:2px solid rgba(239,68,68,0.3);align-items:center;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);">Round of 32</div>
+          <div style="text-align:center;font-size:13px;font-weight:900;color:var(--muted2);">×1</div>
+          <div style="text-align:center;font-size:13px;font-weight:800;color:var(--muted2);">3 pts</div>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:11px 16px;border-bottom:1px solid var(--border);align-items:center;background:rgba(239,68,68,0.03);">
+          <div style="font-size:13px;font-weight:600;color:var(--text);">Round of 16</div>
+          <div style="text-align:center;font-size:13px;font-weight:900;color:#f87171;">×2</div>
+          <div style="text-align:center;font-size:13px;font-weight:800;color:var(--gold);">6 pts</div>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:11px 16px;border-bottom:1px solid var(--border);align-items:center;background:rgba(239,68,68,0.03);">
+          <div style="font-size:13px;font-weight:600;color:var(--text);">Quarter-final</div>
+          <div style="text-align:center;font-size:13px;font-weight:900;color:#f87171;">×2</div>
+          <div style="text-align:center;font-size:13px;font-weight:800;color:var(--gold);">6 pts</div>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:11px 16px;border-bottom:1px solid var(--border);align-items:center;background:rgba(239,68,68,0.03);">
+          <div style="font-size:13px;font-weight:600;color:var(--text);">Semi-final</div>
+          <div style="text-align:center;font-size:13px;font-weight:900;color:#f87171;">×2</div>
+          <div style="text-align:center;font-size:13px;font-weight:800;color:var(--gold);">6 pts</div>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:11px 16px;align-items:center;background:rgba(239,68,68,0.03);">
+          <div style="font-size:13px;font-weight:600;color:var(--text);">Final</div>
+          <div style="text-align:center;font-size:13px;font-weight:900;color:#f87171;">×2</div>
+          <div style="text-align:center;font-size:13px;font-weight:800;color:var(--gold);">6 pts</div>
+        </div>
+      </div>
+
+    </div>
+
   </div>
 
   <!-- ── SCHEDULE ── -->
