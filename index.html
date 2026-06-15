@@ -290,6 +290,59 @@
     .match-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 4px; border-radius: 6px; transition: color 0.12s; }
     .match-del:hover { color: var(--danger); }
 
+    /* ── Sub-tabs (inside Groups tab) ── */
+    .sub-tabs {
+      display: flex; gap: 8px; margin-bottom: 20px;
+      border-bottom: 1px solid var(--border); padding-bottom: 12px;
+    }
+    .sub-tab-btn {
+      padding: 8px 18px; border-radius: var(--radius); border: 1px solid var(--border);
+      background: transparent; color: var(--muted); font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s;
+    }
+    .sub-tab-btn:hover { color: var(--text); border-color: var(--border-hi); }
+    .sub-tab-btn.active { background: var(--gold); color: #111; border-color: var(--gold); }
+    .sub-tab-panel { display: none; }
+    .sub-tab-panel.active { display: block; }
+
+    /* ── Actual Group Stage table ── */
+    .actual-groups-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+    .actual-group-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); overflow: hidden;
+    }
+    .actual-group-header {
+      padding: 10px 16px; font-size: 13px; font-weight: 800;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      background: rgba(245,197,24,0.1); border-bottom: 1px solid var(--border);
+      color: var(--gold); display: flex; align-items: center; gap: 8px;
+    }
+    .actual-group-table { width: 100%; border-collapse: collapse; }
+    .actual-group-table th {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted);
+      padding: 6px 10px; text-align: right;
+    }
+    .actual-group-table th:first-child { text-align: left; }
+    .actual-group-table td {
+      padding: 8px 10px; font-size: 13px;
+      border-top: 1px solid var(--border); text-align: right;
+    }
+    .actual-group-table td:first-child { text-align: left; }
+    .actual-group-table tr:hover td { background: rgba(255,255,255,0.03); }
+    .ag-team-cell { display: flex; align-items: center; gap: 8px; }
+    .ag-flag { font-size: 18px; }
+    .ag-name { font-size: 13px; font-weight: 600; }
+    .ag-drafted { font-size: 10px; color: var(--gold); font-weight: 700;
+      background: rgba(245,197,24,0.12); border-radius: 100px; padding: 1px 6px; }
+    .ag-pts-cell { font-weight: 800; color: var(--gold); }
+    .actual-group-table tr.top-2 td { background: rgba(16,185,129,0.04); }
+    .actual-group-table tr.top-2 td:first-child { border-left: 3px solid #10b981; }
+
     /* ── Groups view ── */
     .groups-grid { display: flex; flex-direction: column; gap: 16px; }
     .group-card {
@@ -950,7 +1003,16 @@
 
   <!-- ── GROUPS ── -->
   <div id="tab-groups" class="view">
-    <div id="groups-view" class="groups-grid"></div>
+    <div class="sub-tabs">
+      <button class="sub-tab-btn active" id="sub-custom-btn" onclick="showGroupSub('custom')">👥 Custom Groups</button>
+      <button class="sub-tab-btn" id="sub-actual-btn" onclick="showGroupSub('actual')">🌍 Actual Group Stages</button>
+    </div>
+    <div id="sub-custom" class="sub-tab-panel active">
+      <div id="groups-view" class="groups-grid"></div>
+    </div>
+    <div id="sub-actual" class="sub-tab-panel">
+      <div id="actual-groups-view"></div>
+    </div>
   </div>
 
   <!-- ── SETUP ── -->
@@ -1745,6 +1807,89 @@ function renderGroups() {
       </div>
     </div>`;
   }).join('');
+}
+
+// ── Actual Group Stage ────────────────────────────────────────
+let actualGroupsCache = null;
+
+function showGroupSub(which) {
+  document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.sub-tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('sub-' + which + '-btn').classList.add('active');
+  document.getElementById('sub-' + which).classList.add('active');
+  if (which === 'actual') {
+    if (!actualGroupsCache) fetchActualGroups();
+    else renderActualGroups();
+  }
+}
+
+async function fetchActualGroups() {
+  const el = document.getElementById('actual-groups-view');
+  if (!el) return;
+  el.innerHTML = '<div class="schedule-loading">Loading FIFA 2026 group standings…</div>';
+  try {
+    const res = await fetch('https://site.api.espn.com/apis/v2/sports/soccer/fifa.world/standings?season=2026');
+    if (!res.ok) throw new Error('Failed');
+    const data = await res.json();
+    actualGroupsCache = (data.children || []).map(group => {
+      const entries = group.standings?.entries || [];
+      return {
+        name: group.name,
+        abbr: group.abbreviation,
+        teams: entries.map(e => {
+          const stats = Object.fromEntries((e.stats || []).map(s => [s.name, s.displayValue]));
+          const espnName = e.team?.displayName || '';
+          const ourName = espnToOurs(espnName);
+          const flag = COUNTRIES.find(c => c.name === ourName)?.flag || '🏳️';
+          return {
+            name: ourName || espnName,
+            flag,
+            owner: state.assignments[ourName] || null,
+            w: parseInt(stats.wins || 0),
+            d: parseInt(stats.ties || 0),
+            l: parseInt(stats.losses || 0),
+            gf: parseInt(stats.pointsFor || 0),
+            ga: parseInt(stats.pointsAgainst || 0),
+            gd: parseInt(stats.pointDifferential || 0),
+            pts: parseInt(stats.points || 0),
+          };
+        }).sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf),
+      };
+    });
+    renderActualGroups();
+  } catch(e) {
+    el.innerHTML = '<div class="schedule-loading">Could not load group standings.</div>';
+  }
+}
+
+function renderActualGroups() {
+  const el = document.getElementById('actual-groups-view');
+  if (!el || !actualGroupsCache) return;
+  el.innerHTML = `<div class="actual-groups-grid">${actualGroupsCache.map(group => `
+    <div class="actual-group-card">
+      <div class="actual-group-header">⚽ ${group.name}</div>
+      <table class="actual-group-table">
+        <thead><tr>
+          <th>Team</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th>
+        </tr></thead>
+        <tbody>
+          ${group.teams.map((t, i) => `
+            <tr class="${i < 2 ? 'top-2' : ''}">
+              <td>
+                <div class="ag-team-cell">
+                  <span class="ag-flag">${t.flag}</span>
+                  <span class="ag-name">${t.name}</span>
+                  ${t.owner ? `<span class="ag-drafted">${t.owner}</span>` : ''}
+                </div>
+              </td>
+              <td>${t.w}</td><td>${t.d}</td><td>${t.l}</td>
+              <td style="color:${t.gd > 0 ? '#10b981' : t.gd < 0 ? '#ef4444' : 'var(--muted)'}">${t.gd > 0 ? '+' : ''}${t.gd}</td>
+              <td class="ag-pts-cell">${t.pts}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`).join('')}
+  </div>`;
 }
 
 function addFriend() {
