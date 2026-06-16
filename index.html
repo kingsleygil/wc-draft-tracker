@@ -592,8 +592,16 @@
     .trophy-svg { flex-shrink: 0; opacity: 0.92; }
     .trophy-svg.flip { transform: scaleX(-1); }
     @media (max-width: 600px) {
+      .hero { padding: 20px 16px 18px; }
+      .hero-inner { gap: 12px; }
+      .hero-title { font-size: 20px; }
+      .hero-eyebrow { font-size: 10px; }
+      .hero-sub { font-size: 11px; }
+      .trophy-svg { width: 40px; height: 54px; }
+    }
+    @media (max-width: 400px) {
+      .trophy-svg { display: none; }
       .hero-title { font-size: 22px; }
-      .trophy-svg { width: 60px; }
     }
 
     /* ── Schedule ── */
