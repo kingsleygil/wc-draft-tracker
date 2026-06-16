@@ -842,9 +842,6 @@
 
     <div class="section-label">Player cards</div>
     <div id="friend-cards" class="friend-grid"></div>
-
-    <div class="section-label" style="margin-top:28px;">Points breakdown by country</div>
-    <div id="breakdown-grid" class="breakdown-grid"></div>
   </div>
 
   <!-- ── MATCHES ── -->
@@ -1469,7 +1466,6 @@ function render() {
   renderTicker();
   renderLeaderboard();
   renderFriendCards();
-  renderBreakdown();
   renderTeamSelects();
   renderMatchLog();
   renderGroups();
@@ -1649,15 +1645,17 @@ function renderFriendCards() {
   const el = document.getElementById('friend-cards');
   if (!el) return;
   if (!state.friends.length) { el.innerHTML = ''; return; }
+  const maxPts = Math.max(1, ...COUNTRIES.map(c => getCountryPts(c.name)));
   el.innerHTML = state.friends.map((f, i) => {
-    const pts = getFriendPts(f);
-    const countries = COUNTRIES.filter(c => state.assignments[c.name] === f);
+    const total = getFriendPts(f);
+    const countries = COUNTRIES.filter(c => state.assignments[c.name] === f)
+      .sort((a, b) => getCountryPts(b.name) - getCountryPts(a.name));
     return `<div class="friend-card" id="card-${f.replace(/\s+/g,'-')}">
       <div class="friend-card-header">
         <div class="avatar" style="width:42px;height:42px;font-size:15px;${avatarStyle(i)}">${initials(f)}</div>
         <div style="font-size:16px;font-weight:800;">${f}</div>
         <div class="friend-card-pts">
-          <div class="pts-num">${pts}</div>
+          <div class="pts-num">${total}</div>
           <div class="pts-label">pts</div>
         </div>
       </div>
@@ -1665,13 +1663,22 @@ function renderFriendCards() {
         ${countries.length
           ? countries.map(c => {
               const cp = getCountryPts(c.name);
-              return `<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
-                <span style="font-size:20px;flex-shrink:0;width:26px;text-align:center;">${c.flag}</span>
-                <div style="flex:1;min-width:0;">
-                  <div style="font-size:13px;font-weight:700;color:var(--text);">${c.name}</div>
-                  ${scorerLine(c.name)}
+              const barPct = Math.round((cp / maxPts) * 100);
+              const pct = total > 0 ? Math.round((cp / total) * 100) : 0;
+              return `<div style="padding:8px 0;border-bottom:1px solid var(--border);">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                  <span style="font-size:20px;flex-shrink:0;width:26px;text-align:center;">${c.flag}</span>
+                  <span style="font-size:13px;font-weight:700;flex:1;min-width:0;">${c.name}</span>
+                  <span style="font-size:14px;font-weight:900;color:${cp > 0 ? 'var(--text)' : 'var(--muted)'};">${cp}<span style="font-size:10px;font-weight:600;color:var(--muted);margin-left:2px;">pts</span></span>
+                  <span style="font-size:11px;color:var(--muted);min-width:28px;text-align:right;">${total > 0 ? pct + '%' : '—'}</span>
                 </div>
-                <span style="font-size:14px;font-weight:900;color:${cp > 0 ? 'var(--text)' : 'var(--muted)'};flex-shrink:0;">${cp} <span style="font-size:10px;font-weight:600;color:var(--muted);">pts</span></span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div style="width:26px;flex-shrink:0;"></div>
+                  <div style="flex:1;height:5px;background:rgba(255,255,255,0.08);border-radius:100px;overflow:hidden;">
+                    <div style="height:100%;border-radius:100px;background:${cp > 0 ? 'var(--gold)' : 'rgba(255,255,255,0.12)'};width:${barPct}%;transition:width 0.4s ease;"></div>
+                  </div>
+                </div>
+                ${scorerLine(c.name)}
               </div>`;
             }).join('')
           : '<span style="color:var(--muted);font-size:13px;">No countries yet</span>'}
