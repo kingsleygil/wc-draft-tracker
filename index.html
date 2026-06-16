@@ -191,7 +191,7 @@
       grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
       gap: 16px;
     }
-    .friend-card {
+    .friend-card { scroll-margin-top: 80px;
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
@@ -1440,6 +1440,11 @@ function showTab(id, btn) {
   }
 }
 
+function scrollToCard(name) {
+  const el = document.getElementById('card-' + name.replace(/\s+/g, '-'));
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function scrollToToday() {
   setTimeout(() => {
     const el = document.getElementById('sched-today');
@@ -1610,7 +1615,7 @@ function renderLeaderboard() {
     const badgeClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-n';
     const rankLabel = i === 0 ? '1' : i === 1 ? '2' : i === 2 ? '3' : i + 1;
     const fidx = state.friends.indexOf(f);
-    return `<div class="lb-row ${rankClass}">
+    return `<div class="lb-row ${rankClass}" style="cursor:pointer;" onclick="scrollToCard('${f}')">
       <div><span class="rank-badge ${badgeClass}">${rankLabel}</span></div>
       <div class="lb-player">
         <div class="avatar" style="${avatarStyle(fidx)}">${initials(f)}</div>
@@ -1643,7 +1648,7 @@ function renderFriendCards() {
   el.innerHTML = state.friends.map((f, i) => {
     const pts = getFriendPts(f);
     const countries = COUNTRIES.filter(c => state.assignments[c.name] === f);
-    return `<div class="friend-card">
+    return `<div class="friend-card" id="card-${f.replace(/\s+/g,'-')}">
       <div class="friend-card-header">
         <div class="avatar" style="width:42px;height:42px;font-size:15px;${avatarStyle(i)}">${initials(f)}</div>
         <div style="font-size:16px;font-weight:800;">${f}</div>
