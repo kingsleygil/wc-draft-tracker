@@ -291,6 +291,60 @@
     .match-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 4px; border-radius: 6px; transition: color 0.12s; }
     .match-del:hover { color: var(--danger); }
 
+    /* ── Bracket ── */
+    .bracket-round-nav {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px;
+    }
+    .bracket-round-btn {
+      padding: 7px 14px; border-radius: 100px; font-size: 12px; font-weight: 700;
+      border: 1px solid var(--border-hi); background: rgba(255,255,255,0.04);
+      color: var(--muted2); cursor: pointer; font-family: 'Inter', sans-serif;
+      transition: all 0.15s; letter-spacing: 0.02em;
+    }
+    .bracket-round-btn:hover { color: var(--text); background: rgba(255,255,255,0.08); }
+    .bracket-round-btn.active { background: var(--gold); color: #000; border-color: var(--gold); }
+    .bracket-round-btn.has-live { border-color: var(--accent2); color: var(--accent2); }
+    .bracket-round-btn.has-live.active { background: var(--accent2); color: #000; border-color: var(--accent2); }
+    .bracket-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 10px;
+    }
+    .bracket-match {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .bracket-match.has-drafted { border-color: rgba(245,197,24,0.4); }
+    .bracket-match.is-live { border-color: var(--accent2); }
+    .bracket-match-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 12px; background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border);
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .bracket-team-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+    }
+    .bracket-team-row:last-child { border-bottom: none; }
+    .bracket-team-row.winner { background: rgba(245,197,24,0.05); }
+    .bracket-team-row.winner .bracket-team-name { color: var(--gold); }
+    .bracket-team-flag { font-size: 22px; width: 28px; text-align: center; flex-shrink: 0; }
+    .bracket-team-name { font-size: 14px; font-weight: 700; flex: 1; }
+    .bracket-team-name.tbd { color: var(--muted); font-style: italic; font-weight: 500; }
+    .bracket-team-score { font-size: 20px; font-weight: 900; min-width: 24px; text-align: right; }
+    .bracket-team-score.winner-score { color: var(--gold); }
+    .bracket-owner { font-size: 10px; font-weight: 700; color: var(--gold);
+      background: rgba(245,197,24,0.12); border-radius: 100px; padding: 1px 7px; }
+    .bracket-coming-soon {
+      text-align: center; padding: 60px 20px;
+      color: var(--muted); font-size: 14px; line-height: 1.8;
+    }
+    .bracket-coming-soon .bcs-icon { font-size: 48px; margin-bottom: 16px; }
+    .bracket-coming-soon strong { color: var(--text); display: block; font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+
     /* ── Sub-tabs (inside Groups tab) ── */
     .sub-tabs {
       display: flex; gap: 8px; margin-bottom: 20px;
@@ -747,6 +801,7 @@
       <button class="nav-btn active" onclick="showTab('leaderboard', this)">🏆 <span>Leaderboard</span></button>
       <button class="nav-btn" onclick="showTab('matches', this)">⚽ <span>Matches</span></button>
       <button class="nav-btn" onclick="showTab('groups', this)">👥 <span>Groups</span></button>
+      <button class="nav-btn" onclick="showTab('bracket', this)">🏆 <span>Bracket</span></button>
       <button class="nav-btn" onclick="showTab('schedule', this)">📅 <span>Schedule</span></button>
       <button class="nav-btn" onclick="showTab('scoring', this)">📋 <span>Scoring</span></button>
       <button class="nav-btn" onclick="showTab('setup', this)">⚙️ <span>Setup</span></button>
@@ -1000,6 +1055,12 @@
 
     </div>
 
+  </div>
+
+  <!-- ── BRACKET ── -->
+  <div id="tab-bracket" class="view">
+    <div id="bracket-round-nav" class="bracket-round-nav"></div>
+    <div id="bracket-body"></div>
   </div>
 
   <!-- ── SCHEDULE ── -->
@@ -1279,6 +1340,155 @@ syncInterval = setInterval(() => { syncScores(); fetchTopScorers(); fetchActualG
 
 // ── Schedule fetch ──────────────────────────────────────────
 let scheduleCache = [];
+
+// ── Bracket ─────────────────────────────────────────────────
+const BRACKET_ROUNDS = [
+  { slug: 'round-of-32',    label: 'Round of 32',  dates: '20260627-20260704' },
+  { slug: 'round-of-16',    label: 'Round of 16',  dates: '20260704-20260708' },
+  { slug: 'quarterfinals',  label: 'Quarters',     dates: '20260709-20260713' },
+  { slug: 'semifinals',     label: 'Semis',        dates: '20260714-20260716' },
+  { slug: '3rd-place-match',label: '3rd Place',    dates: '20260718-20260718' },
+  { slug: 'final',          label: 'Final',        dates: '20260719-20260719' },
+];
+let bracketCache = {};   // slug -> array of match objects
+let bracketRound = null; // currently selected slug
+
+async function fetchBracket(slug) {
+  if (bracketCache[slug]) { renderBracket(); return; }
+  const round = BRACKET_ROUNDS.find(r => r.slug === slug);
+  if (!round) return;
+  try {
+    const res = await fetch(
+      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${round.dates}&limit=50`
+    );
+    if (!res.ok) return;
+    const data = await res.json();
+    bracketCache[slug] = (data.events || [])
+      .filter(e => (e.season?.slug || '') === slug)
+      .map(e => {
+        const comp = e.competitions?.[0];
+        const home = comp?.competitors?.find(c => c.homeAway === 'home');
+        const away = comp?.competitors?.find(c => c.homeAway === 'away');
+        const st = comp?.status?.type || {};
+        const isLive = !st.completed && st.state === 'in';
+        const isDone = !!st.completed;
+        const scoreA = isDone || isLive ? (home?.score ?? '') : '';
+        const scoreB = isDone || isLive ? (away?.score ?? '') : '';
+        const nameA = espnToOurs(home?.team?.displayName || '');
+        const nameB = espnToOurs(away?.team?.displayName || '');
+        const isTbdA = !nameA || home?.team?.displayName?.includes('Winner') || home?.team?.displayName?.includes('Place') || home?.team?.displayName?.includes('Loser');
+        const isTbdB = !nameB || away?.team?.displayName?.includes('Winner') || away?.team?.displayName?.includes('Place') || away?.team?.displayName?.includes('Loser');
+        const flagA = COUNTRIES.find(c => c.name === nameA)?.flag || '';
+        const flagB = COUNTRIES.find(c => c.name === nameB)?.flag || '';
+        const winnerA = isDone && +scoreA > +scoreB;
+        const winnerB = isDone && +scoreB > +scoreA;
+        const date = new Date(e.date);
+        return {
+          id: e.id,
+          nameA: isTbdA ? (home?.team?.displayName || 'TBD') : nameA,
+          nameB: isTbdB ? (away?.team?.displayName || 'TBD') : nameB,
+          flagA: isTbdA ? '' : flagA,
+          flagB: isTbdB ? '' : flagB,
+          isTbdA, isTbdB,
+          scoreA, scoreB,
+          winnerA, winnerB,
+          isLive, isDone,
+          clock: comp?.status?.displayClock || '',
+          dateStr: date.toLocaleDateString('en-US', { month:'short', day:'numeric' }),
+          time: date.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' }),
+          ownerA: state.assignments[nameA] || null,
+          ownerB: state.assignments[nameB] || null,
+        };
+      });
+    renderBracket();
+  } catch(e) {}
+}
+
+function setBracketRound(slug) {
+  bracketRound = slug;
+  renderBracketNav();
+  fetchBracket(slug);
+}
+
+function renderBracketNav() {
+  const el = document.getElementById('bracket-round-nav');
+  if (!el) return;
+  el.innerHTML = BRACKET_ROUNDS.map(r => {
+    const matches = bracketCache[r.slug] || [];
+    const hasLive = matches.some(m => m.isLive);
+    const cls = [
+      'bracket-round-btn',
+      r.slug === bracketRound ? 'active' : '',
+      hasLive && r.slug !== bracketRound ? 'has-live' : ''
+    ].filter(Boolean).join(' ');
+    return `<button class="${cls}" onclick="setBracketRound('${r.slug}')">${r.label}${hasLive ? ' 🔴' : ''}</button>`;
+  }).join('');
+}
+
+function renderBracket() {
+  const el = document.getElementById('bracket-body');
+  if (!el) return;
+  renderBracketNav();
+
+  const matches = bracketCache[bracketRound] || [];
+  const round = BRACKET_ROUNDS.find(r => r.slug === bracketRound);
+
+  if (!matches.length) {
+    const r32start = new Date('2026-06-27');
+    const now = new Date();
+    const isGroupStage = now < r32start;
+    el.innerHTML = `<div class="bracket-coming-soon">
+      <div class="bcs-icon">🏆</div>
+      <strong>${round?.label || 'Bracket'}</strong>
+      ${isGroupStage
+        ? 'The knockout bracket will be set once the group stage is complete.<br>Check back on June 27th!'
+        : 'No matches found for this round yet. Check back soon.'}
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="bracket-grid">${matches.map(m => {
+    const hasDrafted = m.ownerA || m.ownerB;
+    return `<div class="bracket-match ${hasDrafted ? 'has-drafted' : ''} ${m.isLive ? 'is-live' : ''}">
+      <div class="bracket-match-header">
+        <span>${m.dateStr} · ${m.time}</span>
+        ${m.isLive ? `<span style="color:var(--accent2);animation:pulse 1.5s infinite;">● LIVE ${m.clock}</span>`
+                   : m.isDone ? `<span style="color:var(--muted);">Final</span>`
+                   : `<span style="color:var(--muted);">Upcoming</span>`}
+      </div>
+      ${[
+        { name: m.nameA, flag: m.flagA, score: m.scoreA, winner: m.winnerA, tbd: m.isTbdA, owner: m.ownerA },
+        { name: m.nameB, flag: m.flagB, score: m.scoreB, winner: m.winnerB, tbd: m.isTbdB, owner: m.ownerB },
+      ].map(t => `
+        <div class="bracket-team-row ${t.winner ? 'winner' : ''}">
+          <span class="bracket-team-flag">${t.flag || '🏳️'}</span>
+          <span class="bracket-team-name ${t.tbd ? 'tbd' : ''}">${t.name}</span>
+          ${t.owner ? `<span class="bracket-owner">${t.owner}</span>` : ''}
+          <span class="bracket-team-score ${t.winner ? 'winner-score' : ''}">${t.score}</span>
+        </div>`).join('')}
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function initBracket() {
+  // Auto-select the most relevant round based on today's date
+  const now = new Date();
+  const roundDates = [
+    { slug: 'round-of-32',    start: new Date('2026-06-27') },
+    { slug: 'round-of-16',    start: new Date('2026-07-04') },
+    { slug: 'quarterfinals',  start: new Date('2026-07-09') },
+    { slug: 'semifinals',     start: new Date('2026-07-14') },
+    { slug: '3rd-place-match',start: new Date('2026-07-18') },
+    { slug: 'final',          start: new Date('2026-07-19') },
+  ];
+  let active = 'round-of-32';
+  for (const r of roundDates) {
+    if (now >= r.start) active = r.slug;
+  }
+  bracketRound = active;
+  renderBracketNav();
+  fetchBracket(active);
+}
 let scheduleFilter = 'All';
 
 async function fetchSchedule() {
@@ -1447,6 +1657,7 @@ function showTab(id, btn) {
     if (!scheduleCache.length) fetchSchedule().then(scrollToToday);
     else { renderSchedule(); scrollToToday(); }
   }
+  if (id === 'bracket') initBracket();
 }
 
 function scrollToCard(name) {
