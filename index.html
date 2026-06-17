@@ -1075,36 +1075,6 @@ const COUNTRIES = [
   {name:'Paraguay',    flag:'🇵🇾'},
 ];
 
-// Pre-tournament win probabilities (%) sourced from betting market consensus
-const WIN_ODDS = {
-  'Spain':       14,
-  'France':      13,
-  'England':     11,
-  'Brazil':      10,
-  'Argentina':    9,
-  'Germany':      8,
-  'Portugal':     6,
-  'Netherlands':  4,
-  'USA':          3,
-  'Colombia':     2,
-  'Mexico':       2,
-  'Belgium':      2,
-  'Norway':       2,
-  'Uruguay':      2,
-  'Croatia':      1,
-  'Turkey':       1,
-  'Morocco':      1,
-  'Switzerland':  1,
-  'Austria':      1,
-  'Sweden':       1,
-  'Japan':        1,
-  'Korea':       0.5,
-  'Senegal':     0.5,
-  'Australia':   0.5,
-  'Ecuador':     0.5,
-  'Egypt':       0.3,
-  'Paraguay':    0.2,
-};
 
 const AVATAR_PALETTE = [
   {bg:'#1e3a5f', text:'#60a5fa'},
@@ -1700,13 +1670,10 @@ function renderFriendCards() {
               const cp = getCountryPts(c.name);
               const barPct = Math.round((cp / maxPts) * 100);
               const pct = total > 0 ? Math.round((cp / total) * 100) : 0;
-              const odds = WIN_ODDS[c.name];
-              const oddsColor = odds >= 10 ? '#10b981' : odds >= 4 ? '#f59e0b' : 'var(--muted2)';
               return `<div style="padding:8px 0;border-bottom:1px solid var(--border);">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
                   <span style="font-size:20px;flex-shrink:0;width:26px;text-align:center;">${c.flag}</span>
                   <span style="font-size:13px;font-weight:700;flex:1;min-width:0;">${c.name}</span>
-                  ${odds != null ? `<span style="font-size:10px;font-weight:700;color:${oddsColor};background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:100px;padding:2px 7px;white-space:nowrap;">🏆 ${odds}%</span>` : ''}
                   <span style="font-size:14px;font-weight:900;color:${cp > 0 ? 'var(--text)' : 'var(--muted)'};">${cp}<span style="font-size:10px;font-weight:600;color:var(--muted);margin-left:2px;">pts</span></span>
                   <span style="font-size:11px;color:var(--muted);min-width:28px;text-align:right;">${total > 0 ? pct + '%' : '—'}</span>
                 </div>
