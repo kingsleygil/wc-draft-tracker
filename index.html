@@ -343,6 +343,11 @@
     .ag-pts-cell { font-weight: 800; color: var(--gold); }
     .actual-group-table tr.top-2 td { background: rgba(16,185,129,0.04); }
     .actual-group-table tr.top-2 td:first-child { border-left: 3px solid #10b981; }
+    .actual-group-table tr.maybe-row td { background: rgba(245,158,11,0.03); }
+    .actual-group-table tr.maybe-row td:first-child { border-left: 3px solid #f59e0b; }
+    .actual-group-table tr.elim-row td { opacity: 0.45; }
+    .actual-group-table tr.elim-row td:first-child { border-left: 3px solid #ef4444; opacity: 1; }
+    .actual-group-table tr.elim-row td:first-child .ag-name { text-decoration: line-through; }
 
     /* ── Groups view ── */
     .groups-grid { display: flex; flex-direction: column; gap: 16px; }
@@ -1269,7 +1274,8 @@ async function fetchTopScorers() {
 // Auto-sync on load, then every 5 minutes
 syncScores();
 fetchTopScorers();
-syncInterval = setInterval(() => { syncScores(); fetchTopScorers(); }, 5 * 60 * 1000);
+fetchActualGroups();
+syncInterval = setInterval(() => { syncScores(); fetchTopScorers(); fetchActualGroups(); }, 5 * 60 * 1000);
 
 // ── Schedule fetch ──────────────────────────────────────────
 let scheduleCache = [];
@@ -1626,7 +1632,7 @@ function renderLeaderboard() {
         <div class="avatar" style="${avatarStyle(fidx)}">${initials(f)}</div>
         <div>
           <div class="lb-name">${f}</div>
-          <div class="lb-flags">${countries.map(c => c.flag).join(' ') || '<span style="color:var(--muted)">No countries assigned</span>'}</div>
+          <div class="lb-flags">${countries.map(c => eliminatedTeams.has(c.name) ? `<span style="filter:grayscale(1);opacity:0.4;" title="${c.name} eliminated">${c.flag}</span>` : c.flag).join(' ') || '<span style="color:var(--muted)">No countries assigned</span>'}</div>
         </div>
       </div>
       <div style="text-align:right"><span class="lb-pts">${pts}</span><span style="font-size:12px;color:var(--muted);margin-left:3px">pts</span></div>
@@ -1670,10 +1676,12 @@ function renderFriendCards() {
               const cp = getCountryPts(c.name);
               const barPct = Math.round((cp / maxPts) * 100);
               const pct = total > 0 ? Math.round((cp / total) * 100) : 0;
-              return `<div style="padding:8px 0;border-bottom:1px solid var(--border);">
+              const isElim = eliminatedTeams.has(c.name);
+              return `<div style="padding:8px 0;border-bottom:1px solid var(--border);opacity:${isElim ? '0.45' : '1'};">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-                  <span style="font-size:20px;flex-shrink:0;width:26px;text-align:center;">${c.flag}</span>
-                  <span style="font-size:13px;font-weight:700;flex:1;min-width:0;">${c.name}</span>
+                  <span style="font-size:20px;flex-shrink:0;width:26px;text-align:center;${isElim ? 'filter:grayscale(1);' : ''}">${c.flag}</span>
+                  <span style="font-size:13px;font-weight:700;flex:1;min-width:0;${isElim ? 'text-decoration:line-through;color:var(--muted);' : ''}">${c.name}</span>
+                  ${isElim ? `<span style="font-size:10px;font-weight:800;color:#ef4444;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);border-radius:100px;padding:2px 7px;">OUT</span>` : ''}
                   <span style="font-size:14px;font-weight:900;color:${cp > 0 ? 'var(--text)' : 'var(--muted)'};">${cp}<span style="font-size:10px;font-weight:600;color:var(--muted);margin-left:2px;">pts</span></span>
                   <span style="font-size:11px;color:var(--muted);min-width:28px;text-align:right;">${total > 0 ? pct + '%' : '—'}</span>
                 </div>
@@ -1832,6 +1840,7 @@ function renderGroups() {
 
 // ── Actual Group Stage ────────────────────────────────────────
 let actualGroupsCache = null;
+let eliminatedTeams = new Set(); // populated by fetchActualGroups
 
 function showGroupSub(which) {
   document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
@@ -1862,6 +1871,11 @@ async function fetchActualGroups() {
           const espnName = e.team?.displayName || '';
           const ourName = espnToOurs(espnName);
           const flag = COUNTRIES.find(c => c.name === ourName)?.flag || '🏳️';
+          const noteDesc = e.note?.description || '';
+          const status = noteDesc === 'Eliminated' ? 'eliminated'
+                       : noteDesc === 'Advance to Round of 32' ? 'advanced'
+                       : noteDesc.includes('Best') ? 'maybe'
+                       : 'unknown';
           return {
             name: ourName || espnName,
             flag,
@@ -1873,11 +1887,20 @@ async function fetchActualGroups() {
             ga: parseInt(stats.pointsAgainst || 0),
             gd: parseInt(stats.pointDifferential || 0),
             pts: parseInt(stats.points || 0),
+            status,
           };
         }).sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf),
       };
     });
+    // Build global eliminated set
+    eliminatedTeams = new Set();
+    for (const group of actualGroupsCache) {
+      for (const t of group.teams) {
+        if (t.status === 'eliminated') eliminatedTeams.add(t.name);
+      }
+    }
     renderActualGroups();
+    render(); // refresh player cards & leaderboard with new elimination data
   } catch(e) {
     el.innerHTML = '<div class="schedule-loading">Could not load group standings.</div>';
   }
@@ -1895,12 +1918,15 @@ function renderActualGroups() {
         </tr></thead>
         <tbody>
           ${group.teams.map((t, i) => `
-            <tr class="${i < 2 ? 'top-2' : ''}">
+            <tr class="${t.status === 'eliminated' ? 'elim-row' : t.status === 'advanced' ? 'top-2' : t.status === 'maybe' ? 'maybe-row' : ''}">
               <td>
                 <div class="ag-team-cell">
-                  <span class="ag-flag">${t.flag}</span>
-                  <span class="ag-name">${t.name}</span>
+                  <span class="ag-flag" style="${t.status === 'eliminated' ? 'filter:grayscale(1);opacity:0.5;' : ''}">${t.flag}</span>
+                  <span class="ag-name" style="${t.status === 'eliminated' ? 'text-decoration:line-through;color:var(--muted);' : ''}">${t.name}</span>
                   ${t.owner ? `<span class="ag-drafted">${t.owner}</span>` : ''}
+                  ${t.status === 'eliminated' ? `<span style="font-size:10px;font-weight:800;color:#ef4444;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);border-radius:100px;padding:1px 6px;">OUT</span>` : ''}
+                  ${t.status === 'advanced' ? `<span style="font-size:10px;font-weight:800;color:#10b981;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);border-radius:100px;padding:1px 6px;">✓ ADV</span>` : ''}
+                  ${t.status === 'maybe' ? `<span style="font-size:10px;font-weight:800;color:#f59e0b;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);border-radius:100px;padding:1px 6px;">TBD</span>` : ''}
                 </div>
               </td>
               <td>${t.w}</td><td>${t.d}</td><td>${t.l}</td>
