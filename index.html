@@ -855,6 +855,14 @@
       <div class="hero-eyebrow">FIFA World Cup 2026</div>
       <div class="hero-title">SNL <span>World Cup</span> Tracker</div>
       <div class="hero-sub">Draft League &nbsp;·&nbsp; 9 Players &nbsp;·&nbsp; 27 Countries</div>
+      <div style="margin-top:12px;">
+        <button id="notif-btn" onclick="toggleNotifications()" style="
+          padding:7px 16px; border-radius:100px; border:1px solid rgba(245,197,24,0.4);
+          background:rgba(245,197,24,0.08); color:var(--gold); font-size:12px;
+          font-weight:700; cursor:pointer; font-family:'Inter',sans-serif;
+          transition:all 0.15s; letter-spacing:0.03em;
+        ">🔔 Enable Notifications</button>
+      </div>
     </div>
 
     <!-- Right trophy (mirrored) -->
@@ -2248,9 +2256,81 @@ document.getElementById('friend-input').addEventListener('keydown', e => {
 });
 </script>
 <script>
+// ── Push Notifications ───────────────────────────────────────
+const WORKER_URL = 'REPLACE_WITH_WORKER_URL'; // filled in after Cloudflare deploy
+const VAPID_PUBLIC_KEY = 'BCW6X9L1j2zfePpxmuSUPqmfssE10wpCrFXkrD8pO4cQoLesdgsqHANen8DEDKOgYe4eb_uImhDa5FibBWeWuHk';
+
+function urlBase64ToUint8Array(base64String) {
+  const pad = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + pad).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function toggleNotifications() {
+  const btn = document.getElementById('notif-btn');
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    alert('Push notifications are not supported in this browser. Try Chrome or Edge.');
+    return;
+  }
+  if (WORKER_URL === 'REPLACE_WITH_WORKER_URL') {
+    alert('Push notifications coming soon — worker not yet deployed.');
+    return;
+  }
+  const reg = await navigator.serviceWorker.ready;
+  const existing = await reg.pushManager.getSubscription();
+  if (existing) {
+    await existing.unsubscribe();
+    await fetch(WORKER_URL + '/unsubscribe', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(existing) });
+    updateNotifBtn(false);
+    toast('Notifications disabled');
+  } else {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') { toast('Notification permission denied'); return; }
+    try {
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+      await fetch(WORKER_URL + '/subscribe', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(sub) });
+      updateNotifBtn(true);
+      toast('🔔 Notifications enabled! You\'ll get alerts when your teams score.');
+    } catch(e) {
+      toast('Could not enable notifications: ' + e.message);
+    }
+  }
+}
+
+function updateNotifBtn(enabled) {
+  const btn = document.getElementById('notif-btn');
+  if (!btn) return;
+  if (enabled) {
+    btn.textContent = '🔕 Notifications On';
+    btn.style.background = 'rgba(16,185,129,0.12)';
+    btn.style.borderColor = 'rgba(16,185,129,0.4)';
+    btn.style.color = '#10b981';
+  } else {
+    btn.textContent = '🔔 Enable Notifications';
+    btn.style.background = 'rgba(245,197,24,0.08)';
+    btn.style.borderColor = 'rgba(245,197,24,0.4)';
+    btn.style.color = 'var(--gold)';
+  }
+}
+
+async function initNotifBtn() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  const reg = await navigator.serviceWorker.ready.catch(() => null);
+  if (!reg) return;
+  const sub = await reg.pushManager.getSubscription().catch(() => null);
+  updateNotifBtn(!!sub);
+}
+
+// ── Service Worker ───────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js')
+      .then(() => initNotifBtn())
+      .catch(() => {});
   });
 }
 </script>
