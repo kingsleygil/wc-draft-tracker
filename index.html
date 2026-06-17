@@ -1872,7 +1872,8 @@ async function fetchActualGroups() {
           const ourName = espnToOurs(espnName);
           const flag = COUNTRIES.find(c => c.name === ourName)?.flag || '🏳️';
           const noteDesc = e.note?.description || '';
-          const status = noteDesc === 'Eliminated' ? 'eliminated'
+          const gp = parseInt(stats.gamesPlayed || 0);
+          const status = (noteDesc === 'Eliminated' && gp >= 2) ? 'eliminated'
                        : noteDesc === 'Advance to Round of 32' ? 'advanced'
                        : noteDesc.includes('Best') ? 'maybe'
                        : 'unknown';
