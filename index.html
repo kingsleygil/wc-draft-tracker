@@ -524,40 +524,6 @@
     .ticker-item .t-owner { font-size: 11px; color: var(--gold); font-weight: 700; }
     .ticker-empty { font-size: 13px; color: var(--muted); padding: 0 20px; }
 
-    /* ── Head to Head ── */
-    .h2h-grid { display: flex; flex-direction: column; gap: 10px; }
-    .h2h-card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: var(--radius-lg); padding: 14px 16px;
-    }
-    .h2h-matchup { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-    .h2h-player { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
-    .h2h-player.right { flex-direction: row-reverse; text-align: right; }
-    .h2h-pname { font-size: 13px; font-weight: 800; }
-    .h2h-pcountries { font-size: 11px; color: var(--muted); margin-top: 1px; }
-    .h2h-score-block { flex-shrink: 0; text-align: center; min-width: 64px; }
-    .h2h-score { font-size: 20px; font-weight: 900; letter-spacing: 2px; }
-    .h2h-score-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-top: 2px; }
-    .h2h-bar-wrap { display: flex; height: 5px; border-radius: 100px; overflow: hidden; background: rgba(255,255,255,0.08); margin-bottom: 5px; }
-    .h2h-bar-a { height: 100%; background: var(--gold); border-radius: 100px 0 0 100px; transition: width 0.4s; }
-    .h2h-bar-b { height: 100%; background: var(--accent); border-radius: 0 100px 100px 0; transition: width 0.4s; }
-    .h2h-record { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
-    .h2h-record .leader { color: var(--accent2); font-weight: 700; }
-    .h2h-match-row {
-      display: flex; align-items: center; gap: 8px;
-      padding: 7px 0; border-top: 1px solid var(--border);
-      font-size: 12px; color: var(--muted2);
-    }
-    .h2h-match-teams { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .h2h-match-score { font-weight: 800; color: var(--text); min-width: 36px; text-align: center; }
-    .h2h-winner-badge {
-      font-size: 10px; font-weight: 700; border-radius: 100px; padding: 2px 8px; white-space: nowrap;
-    }
-    .h2h-winner-badge.win-a { background: rgba(245,197,24,0.15); color: var(--gold); border: 1px solid rgba(245,197,24,0.3); }
-    .h2h-winner-badge.win-b { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); }
-    .h2h-winner-badge.draw { background: rgba(255,255,255,0.06); color: var(--muted); border: 1px solid var(--border); }
-    .h2h-empty { font-size: 13px; color: var(--muted); padding: 16px 0; text-align: center; font-style: italic; }
-
     /* ── Breakdown ── */
     .breakdown-grid {
       display: grid;
@@ -883,10 +849,7 @@
       <div id="lb-body"></div>
     </div>
 
-    <div class="section-label" style="margin-top:28px;">Draft rivalries</div>
-    <div id="h2h-section"></div>
-
-    <div class="section-label" style="margin-top:28px;">Player cards</div>
+    <div class="section-label">Player cards</div>
     <div id="friend-cards" class="friend-grid"></div>
   </div>
 
@@ -1513,7 +1476,6 @@ function render() {
   renderStats();
   renderTicker();
   renderLeaderboard();
-  renderH2H();
   renderFriendCards();
   renderTeamSelects();
   renderMatchLog();
@@ -1688,123 +1650,6 @@ function scorerLine(countryName) {
     <span style="font-size:11px;color:var(--muted2);font-weight:500;">${s.name}</span>
     <span style="font-size:11px;font-weight:800;color:#10b981;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);border-radius:100px;padding:1px 7px;">${s.goals} goal${s.goals !== 1 ? 's' : ''}</span>
   </div>`;
-}
-
-function renderH2H() {
-  const el = document.getElementById('h2h-section');
-  if (!el) return;
-
-  // Find all matches where both teams are owned by different players
-  const allMatches = [...(state.matches || []), ...(state.liveMatches || [])];
-  const rivalries = {}; // key: "PlayerA|PlayerB" sorted
-
-  allMatches.forEach(m => {
-    const ownerA = state.assignments[m.teamA];
-    const ownerB = state.assignments[m.teamB];
-    if (!ownerA || !ownerB || ownerA === ownerB) return;
-    const key = [ownerA, ownerB].sort().join('|');
-    if (!rivalries[key]) rivalries[key] = { players: [ownerA, ownerB].sort(), matches: [] };
-    rivalries[key].matches.push(m);
-  });
-
-  const keys = Object.keys(rivalries);
-  if (!keys.length) {
-    el.innerHTML = '<div class="h2h-empty">No draft rivalries yet — check back when drafted countries face each other.</div>';
-    return;
-  }
-
-  // Sort rivalries by most recent match
-  keys.sort((a, b) => {
-    const la = rivalries[a].matches[rivalries[a].matches.length - 1];
-    const lb = rivalries[b].matches[rivalries[b].matches.length - 1];
-    return (lb.date || lb.id || 0) - (la.date || la.id || 0);
-  });
-
-  el.innerHTML = `<div class="h2h-grid">${keys.map(key => {
-    const { players, matches } = rivalries[key];
-    const [p1, p2] = players;
-    const p1idx = state.friends.indexOf(p1);
-    const p2idx = state.friends.indexOf(p2);
-
-    let p1wins = 0, p2wins = 0, draws = 0;
-    let p1pts = 0, p2pts = 0;
-
-    const matchRows = matches.map(m => {
-      const isLive = (state.liveMatches || []).some(lm => lm.espnId === m.espnId);
-      const ownerA = state.assignments[m.teamA];
-      const ownerB = state.assignments[m.teamB];
-      const sA = +m.scoreA, sB = +m.scoreB;
-      const mult = ['Round of 16','Quarter-final','Semi-final','Final'].includes(m.stage) ? 2 : 1;
-      const pA = ((sA > sB ? 3 : sA === sB ? 1 : 0) * mult) + sA;
-      const pB = ((sB > sA ? 3 : sA === sB ? 1 : 0) * mult) + sB;
-
-      // assign points to p1/p2
-      const isOwnerAp1 = ownerA === p1;
-      const mp1pts = isOwnerAp1 ? pA : pB;
-      const mp2pts = isOwnerAp1 ? pB : pA;
-      p1pts += mp1pts; p2pts += mp2pts;
-
-      const p1won = mp1pts > mp2pts;
-      const p2won = mp2pts > mp1pts;
-      if (!isLive) { if (p1won) p1wins++; else if (p2won) p2wins++; else draws++; }
-
-      const flagA = COUNTRIES.find(c => c.name === m.teamA)?.flag || '';
-      const flagB = COUNTRIES.find(c => c.name === m.teamB)?.flag || '';
-      const badgeClass = isLive ? 'draw' : p1won ? 'win-a' : p2won ? 'win-b' : 'draw';
-      const badgeText = isLive ? `Live ${m.clock || ''}`.trim()
-                      : p1won ? `${p1} +${mp1pts} pts` : p2won ? `${p2} +${mp2pts} pts` : `Draw — each +${mp1pts} pts`;
-
-      return `<div class="h2h-match-row">
-        <span>${flagA}${flagB}</span>
-        <span class="h2h-match-teams">${m.teamA} vs ${m.teamB}</span>
-        <span class="h2h-match-score">${sA}–${sB}</span>
-        <span class="h2h-winner-badge ${badgeClass}">${badgeText}</span>
-      </div>`;
-    }).join('');
-
-    const totalGames = p1wins + p2wins + draws;
-    const p1pct = totalGames > 0 ? Math.round((p1wins / totalGames) * 100) : 50;
-    const p2pct = 100 - p1pct;
-    const recordText = p1wins > p2wins ? `<span class="leader">${p1} leads ${p1wins}–${p2wins}</span>`
-                     : p2wins > p1wins ? `<span class="leader">${p2} leads ${p2wins}–${p1wins}</span>`
-                     : draws === totalGames ? `<span>All draws</span>`
-                     : `<span>All square ${p1wins}–${p2wins}</span>`;
-
-    const p1countries = COUNTRIES.filter(c => state.assignments[c.name] === p1).map(c => c.flag).join('');
-    const p2countries = COUNTRIES.filter(c => state.assignments[c.name] === p2).map(c => c.flag).join('');
-
-    return `<div class="h2h-card">
-      <div class="h2h-matchup">
-        <div class="h2h-player">
-          <div class="avatar" style="width:36px;height:36px;font-size:12px;${avatarStyle(p1idx)}">${initials(p1)}</div>
-          <div>
-            <div class="h2h-pname">${p1}</div>
-            <div class="h2h-pcountries">${p1countries}</div>
-          </div>
-        </div>
-        <div class="h2h-score-block">
-          <div class="h2h-score" style="color:var(--gold)">${p1pts}<span style="font-size:13px;color:var(--muted);margin:0 4px;">–</span>${p2pts}</div>
-          <div class="h2h-score-label">points</div>
-        </div>
-        <div class="h2h-player right">
-          <div class="avatar" style="width:36px;height:36px;font-size:12px;${avatarStyle(p2idx)}">${initials(p2)}</div>
-          <div>
-            <div class="h2h-pname">${p2}</div>
-            <div class="h2h-pcountries">${p2countries}</div>
-          </div>
-        </div>
-      </div>
-      <div class="h2h-bar-wrap">
-        <div class="h2h-bar-a" style="width:${p1pct}%"></div>
-        <div class="h2h-bar-b" style="width:${p2pct}%"></div>
-      </div>
-      <div class="h2h-record">
-        ${recordText}
-        <span>${totalGames} match${totalGames !== 1 ? 'es' : ''}</span>
-      </div>
-      ${matchRows}
-    </div>`;
-  }).join('')}</div>`;
 }
 
 function renderFriendCards() {
