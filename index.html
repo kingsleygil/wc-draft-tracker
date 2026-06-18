@@ -404,6 +404,12 @@
     .ag-team-cell { display: flex; align-items: center; gap: 8px; }
     .ag-flag { font-size: 18px; }
     .ag-name { font-size: 13px; font-weight: 600; }
+    .fifa-rank {
+      font-size: 10px; font-weight: 700; color: var(--muted);
+      background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+      border-radius: 100px; padding: 1px 6px; white-space: nowrap; flex-shrink: 0;
+    }
+    .fifa-rank.top10 { color: var(--gold); background: rgba(245,197,24,0.1); border-color: rgba(245,197,24,0.25); }
     .ag-drafted { font-size: 10px; color: var(--gold); font-weight: 700;
       background: rgba(245,197,24,0.12); border-radius: 100px; padding: 1px 6px; }
     .ag-pts-cell { font-weight: 800; color: var(--gold); }
@@ -912,7 +918,10 @@
       </div>
     </div>
 
-    <div class="section-label">Standings</div>
+    <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
+      Standings
+      <span id="fifa-rank-date" style="font-size:10px;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;"></span>
+    </div>
     <div class="lb-table">
       <div class="lb-header">
         <div>#</div>
@@ -1161,6 +1170,39 @@ const COUNTRIES = [
   {name:'Paraguay',    flag:'🇵🇾'},
 ];
 
+
+// FIFA World Rankings — updated June 2025
+// Source: FIFA.com | Next update: after World Cup
+const FIFA_RANKINGS = {
+  'Argentina':   1,
+  'France':      2,
+  'Spain':       3,
+  'England':     4,
+  'Brazil':      5,
+  'Portugal':    6,
+  'Belgium':     7,
+  'Netherlands': 8,
+  'Colombia':    9,
+  'Germany':    12,
+  'Croatia':    13,
+  'Uruguay':    14,
+  'Morocco':    15,
+  'USA':        16,
+  'Mexico':     17,
+  'Japan':      18,
+  'Switzerland':19,
+  'Senegal':    22,
+  'Korea':      23,
+  'Australia':  24,
+  'Norway':     25,
+  'Austria':    26,
+  'Sweden':     28,
+  'Ecuador':    32,
+  'Turkey':     37,
+  'Egypt':      52,
+  'Paraguay':   61,
+};
+const FIFA_RANKINGS_DATE = 'June 2025';
 
 const AVATAR_PALETTE = [
   {bg:'#1e3a5f', text:'#60a5fa'},
@@ -1840,6 +1882,8 @@ function renderBreakdown() {
 }
 
 function renderStats() {
+  const rd = document.getElementById('fifa-rank-date');
+  if (rd) rd.textContent = 'FIFA rankings as of ' + FIFA_RANKINGS_DATE;
   const el = document.getElementById('stats-row');
   if (!el) return;
   const totalPts = state.friends.reduce((s, f) => s + getFriendPts(f), 0);
@@ -1892,7 +1936,11 @@ function renderLeaderboard() {
         <div class="avatar" style="${avatarStyle(fidx)}">${initials(f)}</div>
         <div>
           <div class="lb-name">${f}</div>
-          <div class="lb-flags">${countries.map(c => eliminatedTeams.has(c.name) ? `<span style="filter:grayscale(1);opacity:0.4;" title="${c.name} eliminated">${c.flag}</span>` : c.flag).join(' ') || '<span style="color:var(--muted)">No countries assigned</span>'}</div>
+          <div class="lb-flags">${countries.map(c => {
+            const rank = FIFA_RANKINGS[c.name];
+            const elim = eliminatedTeams.has(c.name);
+            return `<span title="${c.name}${rank ? ' · FIFA #'+rank : ''}${elim ? ' · Eliminated' : ''}" style="${elim ? 'filter:grayscale(1);opacity:0.4;' : ''}">${c.flag}${rank ? `<sup style="font-size:9px;color:${rank<=10?'var(--gold)':'var(--muted)'};font-weight:700;">${rank}</sup>` : ''}</span>`;
+          }).join(' ') || '<span style="color:var(--muted)">No countries assigned</span>'}</div>
         </div>
       </div>
       <div style="text-align:right"><span class="lb-pts">${pts}</span><span style="font-size:12px;color:var(--muted);margin-left:3px">pts</span></div>
@@ -1941,6 +1989,7 @@ function renderFriendCards() {
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
                   <span style="font-size:20px;flex-shrink:0;width:26px;text-align:center;${isElim ? 'filter:grayscale(1);' : ''}">${c.flag}</span>
                   <span style="font-size:13px;font-weight:700;flex:1;min-width:0;${isElim ? 'text-decoration:line-through;color:var(--muted);' : ''};cursor:pointer;" onclick="goToGroup('${c.name}')" title="View ${c.name}'s group">${c.name}</span>
+                  ${FIFA_RANKINGS[c.name] ? `<span class="fifa-rank ${FIFA_RANKINGS[c.name] <= 10 ? 'top10' : ''}">#${FIFA_RANKINGS[c.name]}</span>` : ''}
                   ${isElim ? `<span style="font-size:10px;font-weight:800;color:#ef4444;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);border-radius:100px;padding:2px 7px;">OUT</span>` : ''}
                   <span style="font-size:14px;font-weight:900;color:${cp > 0 ? 'var(--text)' : 'var(--muted)'};">${cp}<span style="font-size:10px;font-weight:600;color:var(--muted);margin-left:2px;">pts</span></span>
                   <span style="font-size:11px;color:var(--muted);min-width:28px;text-align:right;">${total > 0 ? pct + '%' : '—'}</span>
