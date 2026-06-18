@@ -751,6 +751,8 @@
     .status-upcoming { background: rgba(59,130,246,0.12); color: #60a5fa; }
     .schedule-venue  { font-size: 11px; color: var(--muted); flex: 1; }
     .draft-owners    { font-size: 11px; color: var(--gold); font-weight: 600; }
+    .sched-rank      { font-size: 10px; color: var(--muted); font-weight: 700; margin-left: 4px; }
+    .sched-rank-top  { color: var(--gold); }
     .sched-stage-filter {
       display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px;
     }
@@ -1643,11 +1645,13 @@ function renderSchedule() {
           <div class="schedule-team">
             <span class="schedule-team-flag">${m.flagA}</span>
             <span>${m.teamA}</span>
+            ${FIFA_RANKINGS[m.teamA] ? `<span class="sched-rank ${FIFA_RANKINGS[m.teamA] <= 10 ? 'sched-rank-top' : ''}">#${FIFA_RANKINGS[m.teamA]}</span>` : ''}
           </div>
           ${scoreHtml}
           <div class="schedule-team away">
             <span class="schedule-team-flag">${m.flagB}</span>
             <span>${m.teamB}</span>
+            ${FIFA_RANKINGS[m.teamB] ? `<span class="sched-rank ${FIFA_RANKINGS[m.teamB] <= 10 ? 'sched-rank-top' : ''}">#${FIFA_RANKINGS[m.teamB]}</span>` : ''}
           </div>
         </div>
         <div class="schedule-meta">
