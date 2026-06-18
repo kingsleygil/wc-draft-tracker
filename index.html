@@ -1939,7 +1939,7 @@ function renderLeaderboard() {
           <div class="lb-flags">${countries.map(c => {
             const rank = FIFA_RANKINGS[c.name];
             const elim = eliminatedTeams.has(c.name);
-            return `<span title="${c.name}${rank ? ' · FIFA #'+rank : ''}${elim ? ' · Eliminated' : ''}" style="${elim ? 'filter:grayscale(1);opacity:0.4;' : ''}">${c.flag}${rank ? `<sup style="font-size:9px;color:${rank<=10?'var(--gold)':'var(--muted)'};font-weight:700;">${rank}</sup>` : ''}</span>`;
+            return `<span title="${c.name}${rank ? ' · FIFA #'+rank : ''}${elim ? ' · Eliminated' : ''}" style="${elim ? 'filter:grayscale(1);opacity:0.4;' : ''}">${c.flag}</span>`;
           }).join(' ') || '<span style="color:var(--muted)">No countries assigned</span>'}</div>
         </div>
       </div>
