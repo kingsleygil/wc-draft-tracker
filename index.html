@@ -870,6 +870,12 @@
           font-weight:700; cursor:pointer; font-family:'Inter',sans-serif;
           transition:all 0.15s; letter-spacing:0.03em;
         ">🔔 Enable Notifications</button>
+        <button id="test-notif-btn" onclick="testPush()" style="
+          display:none; margin-left:8px; padding:7px 16px; border-radius:100px;
+          border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.05);
+          color:var(--muted); font-size:12px; font-weight:700; cursor:pointer;
+          font-family:'Inter',sans-serif; transition:all 0.15s; letter-spacing:0.03em;
+        ">Test</button>
       </div>
     </div>
 
@@ -2356,17 +2362,38 @@ async function toggleNotifications() {
 
 function updateNotifBtn(enabled) {
   const btn = document.getElementById('notif-btn');
+  const testBtn = document.getElementById('test-notif-btn');
   if (!btn) return;
   if (enabled) {
     btn.textContent = '🔕 Notifications On';
     btn.style.background = 'rgba(16,185,129,0.12)';
     btn.style.borderColor = 'rgba(16,185,129,0.4)';
     btn.style.color = '#10b981';
+    if (testBtn) testBtn.style.display = 'inline-block';
   } else {
     btn.textContent = '🔔 Enable Notifications';
     btn.style.background = 'rgba(245,197,24,0.08)';
     btn.style.borderColor = 'rgba(245,197,24,0.4)';
     btn.style.color = 'var(--gold)';
+    if (testBtn) testBtn.style.display = 'none';
+  }
+}
+
+async function testPush() {
+  const btn = document.getElementById('test-notif-btn');
+  if (btn) btn.textContent = 'Sending…';
+  try {
+    const res = await fetch(WORKER_URL + '/test-push', { method: 'POST' });
+    const data = await res.json();
+    if (data.sent > 0) {
+      toast('✅ Test notification sent! Check your notifications.');
+    } else {
+      toast('❌ No subscribers found — try toggling notifications off and back on.');
+    }
+  } catch(e) {
+    toast('❌ Test failed: ' + e.message);
+  } finally {
+    if (btn) btn.textContent = 'Test';
   }
 }
 
