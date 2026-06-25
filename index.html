@@ -1244,13 +1244,10 @@ async function syncScores() {
   if (statusEl) statusEl.innerHTML = 'Fetching from ESPN…';
   if (btn) btn.disabled = true;
 
+  const TOURNAMENT_START = '20260611';
   const today = new Date();
-  const datesToFetch = [];
-  for (let i = 7; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    datesToFetch.push(d.toISOString().slice(0,10).replace(/-/g,''));
-  }
+  const todayStr = today.toISOString().slice(0,10).replace(/-/g,'');
+  const dateRange = `${TOURNAMENT_START}-${todayStr}`;
 
   let newCount = 0;
   let liveCount = 0;
@@ -1259,10 +1256,10 @@ async function syncScores() {
 
   state.liveMatches = [];
 
-  for (const date of datesToFetch) {
+  {
     try {
-      const res = await fetch(`${ESPN_URL}?dates=${date}`);
-      if (!res.ok) continue;
+      const res = await fetch(`${ESPN_URL}?dates=${dateRange}&limit=300`);
+      if (!res.ok) throw new Error('bad response');
       const data = await res.json();
       for (const event of (data.events || [])) {
         const comp = event.competitions?.[0];
