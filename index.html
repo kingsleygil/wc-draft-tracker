@@ -317,39 +317,62 @@
     .bracket-round-btn.active { background: var(--gold); color: #000; border-color: var(--gold); }
     .bracket-round-btn.has-live { border-color: var(--accent2); color: var(--accent2); }
     .bracket-round-btn.has-live.active { background: var(--accent2); color: #000; border-color: var(--accent2); }
-    .bracket-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 10px;
+    .bracket-scroll {
+      overflow-x: auto; padding-bottom: 12px;
+    }
+    .bracket-tree {
+      position: relative;
+      display: flex; gap: 56px; align-items: stretch;
+      min-width: max-content; padding: 10px 10px 10px 0;
+    }
+    .bracket-tree svg.bracket-lines {
+      position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible;
+    }
+    .bracket-col {
+      display: flex; flex-direction: column; justify-content: space-around;
+      width: 220px; flex-shrink: 0; position: relative; z-index: 1;
+    }
+    .bracket-col-label {
+      text-align: center; font-size: 11px; font-weight: 800; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+      position: absolute; top: -28px; left: 0; right: 0;
     }
     .bracket-match {
       background: var(--card); border: 1px solid var(--border);
       border-radius: var(--radius-lg); overflow: hidden;
-      transition: border-color 0.15s;
+      transition: border-color 0.15s; flex-shrink: 0;
     }
     .bracket-match.has-drafted { border-color: rgba(245,197,24,0.4); }
     .bracket-match.is-live { border-color: var(--accent2); }
     .bracket-match-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 6px 12px; background: rgba(255,255,255,0.03);
+      padding: 5px 10px; background: rgba(255,255,255,0.03);
       border-bottom: 1px solid var(--border);
-      font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.05em;
       text-transform: uppercase; color: var(--muted);
     }
     .bracket-team-row {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 14px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border-bottom: 1px solid var(--border);
     }
     .bracket-team-row:last-child { border-bottom: none; }
     .bracket-team-row.winner { background: rgba(245,197,24,0.05); }
     .bracket-team-row.winner .bracket-team-name { color: var(--gold); }
-    .bracket-team-flag { font-size: 22px; width: 28px; text-align: center; flex-shrink: 0; }
-    .bracket-team-name { font-size: 14px; font-weight: 700; flex: 1; }
+    .bracket-team-flag { font-size: 18px; width: 22px; text-align: center; flex-shrink: 0; }
+    .bracket-team-name { font-size: 13px; font-weight: 700; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .bracket-team-name.tbd { color: var(--muted); font-style: italic; font-weight: 500; }
-    .bracket-team-score { font-size: 20px; font-weight: 900; min-width: 24px; text-align: right; }
+    .bracket-team-score { font-size: 17px; font-weight: 900; min-width: 20px; text-align: right; }
     .bracket-team-score.winner-score { color: var(--gold); }
-    .bracket-owner { font-size: 10px; font-weight: 700; color: var(--gold);
-      background: rgba(245,197,24,0.12); border-radius: 100px; padding: 1px 7px; }
+    .bracket-owner { font-size: 9px; font-weight: 700; color: var(--gold);
+      background: rgba(245,197,24,0.12); border-radius: 100px; padding: 1px 6px; flex-shrink: 0; }
+    .bracket-final-col { justify-content: center; }
+    .bracket-3rd-place {
+      margin-top: 20px; width: 220px;
+    }
+    .bracket-3rd-place-label {
+      text-align: center; font-size: 10px; font-weight: 800; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+    }
     .bracket-coming-soon {
       text-align: center; padding: 60px 20px;
       color: var(--muted); font-size: 14px; line-height: 1.8;
@@ -1053,7 +1076,7 @@
   <!-- ── BRACKET ── -->
   <div id="tab-bracket" class="view">
     <div id="bracket-round-nav" class="bracket-round-nav"></div>
-    <div id="bracket-body"></div>
+    <div id="bracket-body" class="bracket-scroll"></div>
   </div>
 
   <!-- ── SCHEDULE ── -->
@@ -1367,23 +1390,21 @@ let scheduleCache = [];
 
 // ── Bracket ─────────────────────────────────────────────────
 const BRACKET_ROUNDS = [
-  { slug: 'round-of-32',    label: 'Round of 32',  dates: '20260627-20260704' },
-  { slug: 'round-of-16',    label: 'Round of 16',  dates: '20260704-20260708' },
-  { slug: 'quarterfinals',  label: 'Quarters',     dates: '20260709-20260713' },
-  { slug: 'semifinals',     label: 'Semis',        dates: '20260714-20260716' },
-  { slug: '3rd-place-match',label: '3rd Place',    dates: '20260718-20260718' },
-  { slug: 'final',          label: 'Final',        dates: '20260719-20260719' },
+  { slug: 'round-of-32',    label: 'Round of 32',  dates: '20260627-20260704', slots: 16 },
+  { slug: 'round-of-16',    label: 'Round of 16',  dates: '20260704-20260708', slots: 8 },
+  { slug: 'quarterfinals',  label: 'Quarters',     dates: '20260709-20260713', slots: 4 },
+  { slug: 'semifinals',     label: 'Semis',        dates: '20260714-20260716', slots: 2 },
+  { slug: 'final',          label: 'Final',        dates: '20260719-20260719', slots: 1 },
 ];
+const BRACKET_3RD_PLACE = { slug: '3rd-place-match', label: '3rd Place', dates: '20260718-20260718' };
 let bracketCache = {};   // slug -> array of match objects
-let bracketRound = null; // currently selected slug
+let bracketRound = null; // currently selected slug (jump target)
 
-async function fetchBracket(slug) {
-  if (bracketCache[slug]) { renderBracket(); return; }
-  const round = BRACKET_ROUNDS.find(r => r.slug === slug);
-  if (!round) return;
+async function fetchOneBracketRound(slug, dates) {
+  if (bracketCache[slug]) return;
   try {
     const res = await fetch(
-      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${round.dates}&limit=50`
+      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${dates}&limit=50`
     );
     if (!res.ok) return;
     const data = await res.json();
@@ -1424,14 +1445,23 @@ async function fetchBracket(slug) {
           ownerB: state.assignments[nameB] || null,
         };
       });
-    renderBracket();
   } catch(e) {}
 }
 
-function setBracketRound(slug) {
+async function fetchAllBracketRounds() {
+  await Promise.all([
+    ...BRACKET_ROUNDS.map(r => fetchOneBracketRound(r.slug, r.dates)),
+    fetchOneBracketRound(BRACKET_3RD_PLACE.slug, BRACKET_3RD_PLACE.dates),
+  ]);
+  renderBracketTree();
+}
+
+function jumpToBracketRound(slug) {
   bracketRound = slug;
   renderBracketNav();
-  fetchBracket(slug);
+  const col = document.querySelector(`.bracket-col[data-slug="${slug}"]`);
+  const scroller = document.getElementById('bracket-body');
+  if (col && scroller) scroller.scrollTo({ left: col.offsetLeft - 16, behavior: 'smooth' });
 }
 
 function renderBracketNav() {
@@ -1445,53 +1475,125 @@ function renderBracketNav() {
       r.slug === bracketRound ? 'active' : '',
       hasLive && r.slug !== bracketRound ? 'has-live' : ''
     ].filter(Boolean).join(' ');
-    return `<button class="${cls}" onclick="setBracketRound('${r.slug}')">${r.label}${hasLive ? ' 🔴' : ''}</button>`;
+    return `<button class="${cls}" onclick="jumpToBracketRound('${r.slug}')">${r.label}${hasLive ? ' 🔴' : ''}</button>`;
   }).join('');
 }
 
-function renderBracket() {
+function bracketMatchHtml(m) {
+  const hasDrafted = m && (m.ownerA || m.ownerB);
+  if (!m) {
+    return `<div class="bracket-match">
+      <div class="bracket-match-header"><span>TBD</span></div>
+      ${['A','B'].map(() => `
+        <div class="bracket-team-row">
+          <span class="bracket-team-flag">🏳️</span>
+          <span class="bracket-team-name tbd">TBD</span>
+          <span class="bracket-team-score"></span>
+        </div>`).join('')}
+    </div>`;
+  }
+  return `<div class="bracket-match ${hasDrafted ? 'has-drafted' : ''} ${m.isLive ? 'is-live' : ''}">
+    <div class="bracket-match-header">
+      <span>${m.dateStr}</span>
+      ${m.isLive ? `<span style="color:var(--accent2);animation:pulse 1.5s infinite;">● LIVE</span>`
+                 : m.isDone ? `<span style="color:var(--muted);">Final</span>`
+                 : `<span style="color:var(--muted);">${m.time}</span>`}
+    </div>
+    ${[
+      { name: m.nameA, flag: m.flagA, score: m.scoreA, winner: m.winnerA, tbd: m.isTbdA, owner: m.ownerA },
+      { name: m.nameB, flag: m.flagB, score: m.scoreB, winner: m.winnerB, tbd: m.isTbdB, owner: m.ownerB },
+    ].map(t => `
+      <div class="bracket-team-row ${t.winner ? 'winner' : ''}">
+        <span class="bracket-team-flag">${t.flag || '🏳️'}</span>
+        <span class="bracket-team-name ${t.tbd ? 'tbd' : ''}">${t.name}</span>
+        ${t.owner ? `<span class="bracket-owner">${t.owner}</span>` : ''}
+        <span class="bracket-team-score ${t.winner ? 'winner-score' : ''}">${t.score}</span>
+      </div>`).join('')}
+  </div>`;
+}
+
+function renderBracketTree() {
   const el = document.getElementById('bracket-body');
   if (!el) return;
   renderBracketNav();
 
-  const matches = bracketCache[bracketRound] || [];
-  const round = BRACKET_ROUNDS.find(r => r.slug === bracketRound);
+  const anyData = BRACKET_ROUNDS.some(r => (bracketCache[r.slug] || []).length);
+  const now = new Date();
+  const r32start = new Date('2026-06-27');
 
-  if (!matches.length) {
-    const r32start = new Date('2026-06-27');
-    const now = new Date();
-    const isGroupStage = now < r32start;
+  if (!anyData && now < r32start) {
     el.innerHTML = `<div class="bracket-coming-soon">
       <div class="bcs-icon">🏆</div>
-      <strong>${round?.label || 'Bracket'}</strong>
-      ${isGroupStage
-        ? 'The knockout bracket will be set once the group stage is complete.<br>Check back on June 27th!'
-        : 'No matches found for this round yet. Check back soon.'}
+      <strong>Bracket</strong>
+      The knockout bracket will be set once the group stage is complete.<br>Check back on June 27th!
     </div>`;
     return;
   }
 
-  el.innerHTML = `<div class="bracket-grid">${matches.map(m => {
-    const hasDrafted = m.ownerA || m.ownerB;
-    return `<div class="bracket-match ${hasDrafted ? 'has-drafted' : ''} ${m.isLive ? 'is-live' : ''}">
-      <div class="bracket-match-header">
-        <span>${m.dateStr} · ${m.time}</span>
-        ${m.isLive ? `<span style="color:var(--accent2);animation:pulse 1.5s infinite;">● LIVE ${m.clock}</span>`
-                   : m.isDone ? `<span style="color:var(--muted);">Final</span>`
-                   : `<span style="color:var(--muted);">Upcoming</span>`}
-      </div>
-      ${[
-        { name: m.nameA, flag: m.flagA, score: m.scoreA, winner: m.winnerA, tbd: m.isTbdA, owner: m.ownerA },
-        { name: m.nameB, flag: m.flagB, score: m.scoreB, winner: m.winnerB, tbd: m.isTbdB, owner: m.ownerB },
-      ].map(t => `
-        <div class="bracket-team-row ${t.winner ? 'winner' : ''}">
-          <span class="bracket-team-flag">${t.flag || '🏳️'}</span>
-          <span class="bracket-team-name ${t.tbd ? 'tbd' : ''}">${t.name}</span>
-          ${t.owner ? `<span class="bracket-owner">${t.owner}</span>` : ''}
-          <span class="bracket-team-score ${t.winner ? 'winner-score' : ''}">${t.score}</span>
-        </div>`).join('')}
+  const colsHtml = BRACKET_ROUNDS.map(r => {
+    const matches = bracketCache[r.slug] || [];
+    const slots = Array.from({ length: r.slots }, (_, i) => matches[i] || null);
+    const finalCls = r.slug === 'final' ? ' bracket-final-col' : '';
+    return `<div class="bracket-col${finalCls}" data-slug="${r.slug}">
+      <div class="bracket-col-label">${r.label}</div>
+      ${slots.map(m => bracketMatchHtml(m)).join('')}
     </div>`;
-  }).join('')}</div>`;
+  }).join('');
+
+  const thirdPlace = bracketCache[BRACKET_3RD_PLACE.slug] || [];
+  const thirdPlaceHtml = `<div class="bracket-3rd-place">
+    <div class="bracket-3rd-place-label">3rd Place Playoff</div>
+    ${bracketMatchHtml(thirdPlace[0] || null)}
+  </div>`;
+
+  el.innerHTML = `<div class="bracket-tree" id="bracket-tree-inner" style="margin-top:28px;">
+    ${colsHtml}
+    ${thirdPlaceHtml}
+  </div>`;
+
+  equalizeBracketColumnHeights();
+  drawBracketConnectors();
+}
+
+function equalizeBracketColumnHeights() {
+  const tree = document.getElementById('bracket-tree-inner');
+  if (!tree) return;
+  const firstCol = tree.querySelector('.bracket-col[data-slug="round-of-32"]');
+  if (!firstCol) return;
+  const matchEls = firstCol.querySelectorAll('.bracket-match');
+  if (!matchEls.length) return;
+  const matchH = matchEls[0].getBoundingClientRect().height;
+  const gap = 14;
+  const totalHeight = matchEls.length * matchH + (matchEls.length - 1) * gap;
+  tree.querySelectorAll('.bracket-col').forEach(col => {
+    if (col.dataset.slug === 'final') return;
+    col.style.height = totalHeight + 'px';
+  });
+}
+
+function drawBracketConnectors() {
+  const tree = document.getElementById('bracket-tree-inner');
+  if (!tree) return;
+  const cols = BRACKET_ROUNDS.map(r => Array.from(tree.querySelectorAll(`.bracket-col[data-slug="${r.slug}"] .bracket-match`)));
+  const treeRect = tree.getBoundingClientRect();
+
+  let svgHtml = '';
+  for (let c = 0; c < cols.length - 1; c++) {
+    const left = cols[c], right = cols[c+1];
+    for (let i = 0; i < right.length; i++) {
+      const a = left[i*2], b = left[i*2+1], parent = right[i];
+      if (!a || !b || !parent) continue;
+      const aR = a.getBoundingClientRect(), bR = b.getBoundingClientRect(), pR = parent.getBoundingClientRect();
+      const x1 = aR.right - treeRect.left, y1 = aR.top + aR.height/2 - treeRect.top;
+      const y2 = bR.top + bR.height/2 - treeRect.top;
+      const x2 = pR.left - treeRect.left, yParent = pR.top + pR.height/2 - treeRect.top;
+      const midX = x1 + 24;
+      svgHtml += `<path d="M${x1},${y1} H${midX} V${y2} H${x1}" fill="none" stroke="var(--border-hi)" stroke-width="2"/>`;
+      svgHtml += `<path d="M${midX},${yParent} H${x2}" fill="none" stroke="var(--border-hi)" stroke-width="2"/>`;
+    }
+  }
+  const svg = `<svg class="bracket-lines" width="${tree.scrollWidth}" height="${tree.scrollHeight}">${svgHtml}</svg>`;
+  tree.insertAdjacentHTML('afterbegin', svg);
 }
 
 function initBracket() {
@@ -1502,7 +1604,6 @@ function initBracket() {
     { slug: 'round-of-16',    start: new Date('2026-07-04') },
     { slug: 'quarterfinals',  start: new Date('2026-07-09') },
     { slug: 'semifinals',     start: new Date('2026-07-14') },
-    { slug: '3rd-place-match',start: new Date('2026-07-18') },
     { slug: 'final',          start: new Date('2026-07-19') },
   ];
   let active = 'round-of-32';
@@ -1511,7 +1612,7 @@ function initBracket() {
   }
   bracketRound = active;
   renderBracketNav();
-  fetchBracket(active);
+  fetchAllBracketRounds();
 }
 let scheduleFilter = 'All';
 
