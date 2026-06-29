@@ -1386,7 +1386,7 @@ fetchActualGroups();
 syncInterval = setInterval(() => {
   syncScores(); fetchTopScorers(); fetchActualGroups();
   if (bracketRound) fetchAllBracketRounds();
-}, 5 * 60 * 1000);
+}, 3 * 60 * 1000);
 
 // ── Schedule fetch ──────────────────────────────────────────
 let scheduleCache = [];
