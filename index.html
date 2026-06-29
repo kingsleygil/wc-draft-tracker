@@ -1383,7 +1383,10 @@ async function fetchTopScorers() {
 syncScores();
 fetchTopScorers();
 fetchActualGroups();
-syncInterval = setInterval(() => { syncScores(); fetchTopScorers(); fetchActualGroups(); }, 5 * 60 * 1000);
+syncInterval = setInterval(() => {
+  syncScores(); fetchTopScorers(); fetchActualGroups();
+  if (bracketRound) fetchAllBracketRounds();
+}, 5 * 60 * 1000);
 
 // ── Schedule fetch ──────────────────────────────────────────
 let scheduleCache = [];
@@ -1401,7 +1404,6 @@ let bracketCache = {};   // slug -> array of match objects
 let bracketRound = null; // currently selected slug (jump target)
 
 async function fetchOneBracketRound(slug, dates) {
-  if (bracketCache[slug]) return;
   try {
     const res = await fetch(
       `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${dates}&limit=50`
