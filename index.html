@@ -1532,9 +1532,10 @@ function renderBracketTree() {
     return;
   }
 
+  bracketTreeOrder = buildBracketTreeOrder();
+
   const colsHtml = BRACKET_ROUNDS.map(r => {
-    const matches = bracketCache[r.slug] || [];
-    const slots = Array.from({ length: r.slots }, (_, i) => matches[i] || null);
+    const slots = bracketTreeOrder[r.slug] || Array(r.slots).fill(null);
     const finalCls = r.slug === 'final' ? ' bracket-final-col' : '';
     return `<div class="bracket-col${finalCls}" data-slug="${r.slug}">
       <div class="bracket-col-label">${r.label}</div>
@@ -1580,7 +1581,7 @@ const BRACKET_FEEDER_PREFIX = {
   'final':         'Semifinal',
 };
 
-// Resolve which previous-round match (0-based index) feeds a given team slot.
+// Resolve which previous-round match (0-based index, in that round's raw ESPN order) feeds a given team slot.
 // ESPN labels unresolved slots like "Round of 32 6 Winner" — parse that number.
 // Once a real team name has advanced, fall back to matching it by name.
 function resolveFeederIndex(name, prefix, prevMatches) {
@@ -1589,6 +1590,32 @@ function resolveFeederIndex(name, prefix, prevMatches) {
   if (m) return parseInt(m[1], 10) - 1;
   const idx = prevMatches.findIndex(pm => pm && (pm.nameA === name || pm.nameB === name));
   return idx >= 0 ? idx : null;
+}
+
+let bracketTreeOrder = {};
+
+// Build each round's match list in true bracket visual order (not ESPN's chronological
+// date order) by expanding recursively backwards from the Final using ESPN's own
+// "<Round> N Winner" labels. This guarantees that round[i*2] and round[i*2+1] are always
+// the two real feeders of the next round's match i, so simple positional pairing works
+// for both layout and connector lines.
+function buildBracketTreeOrder() {
+  const chain = ['final', 'semifinals', 'quarterfinals', 'round-of-16', 'round-of-32'];
+  const order = { final: [ (bracketCache['final'] || [])[0] || null ] };
+  for (let r = 0; r < chain.length - 1; r++) {
+    const curSlug = chain[r], prevSlug = chain[r+1];
+    const prefix = BRACKET_FEEDER_PREFIX[curSlug];
+    const prevRaw = bracketCache[prevSlug] || [];
+    const prevOrder = [];
+    (order[curSlug] || []).forEach(m => {
+      if (!m) { prevOrder.push(null, null); return; }
+      const idxA = resolveFeederIndex(m.nameA, prefix, prevRaw);
+      const idxB = resolveFeederIndex(m.nameB, prefix, prevRaw);
+      prevOrder.push(idxA != null ? prevRaw[idxA] : null, idxB != null ? prevRaw[idxB] : null);
+    });
+    order[prevSlug] = prevOrder;
+  }
+  return order;
 }
 
 function drawBracketConnectors() {
@@ -1600,20 +1627,9 @@ function drawBracketConnectors() {
   let svgHtml = '';
   for (let c = 0; c < cols.length - 1; c++) {
     const leftEls = cols[c], rightEls = cols[c+1];
-    const rightRound = BRACKET_ROUNDS[c+1];
-    const prefix = BRACKET_FEEDER_PREFIX[rightRound.slug];
-    const leftMatches = bracketCache[BRACKET_ROUNDS[c].slug] || [];
-    const rightMatches = bracketCache[rightRound.slug] || [];
-
     for (let i = 0; i < rightEls.length; i++) {
-      const parentData = rightMatches[i];
-      const parent = rightEls[i];
-      if (!parent) continue;
-      const idxA = parentData ? resolveFeederIndex(parentData.nameA, prefix, leftMatches) : i*2;
-      const idxB = parentData ? resolveFeederIndex(parentData.nameB, prefix, leftMatches) : i*2+1;
-      const a = idxA != null ? leftEls[idxA] : null;
-      const b = idxB != null ? leftEls[idxB] : null;
-      if (!a || !b) continue;
+      const a = leftEls[i*2], b = leftEls[i*2+1], parent = rightEls[i];
+      if (!a || !b || !parent) continue;
       const aR = a.getBoundingClientRect(), bR = b.getBoundingClientRect(), pR = parent.getBoundingClientRect();
       const x1 = aR.right - treeRect.left, y1 = aR.top + aR.height/2 - treeRect.top;
       const y2 = bR.top + bR.height/2 - treeRect.top;
