@@ -1,4 +1,4 @@
-const CACHE = 'snl-wc-v8';
+const CACHE = 'snl-wc-v9';
 const ASSETS = [
   '/wc-draft-tracker/',
   '/wc-draft-tracker/index.html',

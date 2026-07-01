@@ -1427,8 +1427,8 @@ async function fetchOneBracketRound(slug, dates) {
         const isTbdB = !nameB || away?.team?.displayName?.includes('Winner') || away?.team?.displayName?.includes('Place') || away?.team?.displayName?.includes('Loser');
         const flagA = COUNTRIES.find(c => c.name === nameA)?.flag || '';
         const flagB = COUNTRIES.find(c => c.name === nameB)?.flag || '';
-        const winnerA = isDone && +scoreA > +scoreB;
-        const winnerB = isDone && +scoreB > +scoreA;
+        const winnerA = isDone && !!(home?.winner ?? (+scoreA > +scoreB));
+        const winnerB = isDone && !!(away?.winner ?? (+scoreB > +scoreA));
         const date = new Date(e.date);
         return {
           id: e.id,
