@@ -1455,7 +1455,18 @@ async function fetchAllBracketRounds() {
     ...BRACKET_ROUNDS.map(r => fetchOneBracketRound(r.slug, r.dates)),
     fetchOneBracketRound(BRACKET_3RD_PLACE.slug, BRACKET_3RD_PLACE.dates),
   ]);
+  // Add bracket losers to eliminatedTeams so leaderboard/schedule show them greyed out
+  for (const r of BRACKET_ROUNDS) {
+    for (const m of (bracketCache[r.slug] || [])) {
+      if (!m.isDone) continue;
+      if (m.winnerA && !m.isTbdB) eliminatedTeams.add(m.nameB);
+      if (m.winnerB && !m.isTbdA) eliminatedTeams.add(m.nameA);
+    }
+  }
   renderBracketTree();
+  renderLeaderboard();
+  renderFriendCards();
+  renderSchedule();
 }
 
 function jumpToBracketRound(slug) {
