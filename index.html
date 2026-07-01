@@ -1748,17 +1748,25 @@ function renderSchedule() {
       const scoreHtml = m.isDone || m.isLive
         ? `<span class="schedule-score">${m.scoreA} – ${m.scoreB}</span>`
         : `<span class="schedule-score upcoming">vs</span>`;
-      return `<div class="schedule-match ${isDrafted ? 'drafted' : ''} ${m.isLive ? 'match-live' : ''}">
+      const elimA = eliminatedTeams.has(m.teamA);
+      const elimB = eliminatedTeams.has(m.teamB);
+      const bothElim = elimA && elimB;
+      const elimStyle = bothElim ? ' style="opacity:0.4;filter:grayscale(0.8);"' : '';
+      const flagStyleA = elimA ? ' style="filter:grayscale(1);opacity:0.6;"' : '';
+      const nameStyleA = elimA ? ' style="text-decoration:line-through;color:var(--muted);"' : '';
+      const flagStyleB = elimB ? ' style="filter:grayscale(1);opacity:0.6;"' : '';
+      const nameStyleB = elimB ? ' style="text-decoration:line-through;color:var(--muted);"' : '';
+      return `<div class="schedule-match ${isDrafted ? 'drafted' : ''} ${m.isLive ? 'match-live' : ''}"${elimStyle}>
         <div class="schedule-teams">
           <div class="schedule-team">
-            <span class="schedule-team-flag">${m.flagA}</span>
-            <span>${m.teamA}</span>
+            <span class="schedule-team-flag"${flagStyleA}>${m.flagA}</span>
+            <span${nameStyleA}>${m.teamA}</span>
             ${FIFA_RANKINGS[m.teamA] ? `<span class="sched-rank ${FIFA_RANKINGS[m.teamA] <= 10 ? 'sched-rank-top' : ''}">#${FIFA_RANKINGS[m.teamA]}</span>` : ''}
           </div>
           ${scoreHtml}
           <div class="schedule-team away">
-            <span class="schedule-team-flag">${m.flagB}</span>
-            <span>${m.teamB}</span>
+            <span class="schedule-team-flag"${flagStyleB}>${m.flagB}</span>
+            <span${nameStyleB}>${m.teamB}</span>
             ${FIFA_RANKINGS[m.teamB] ? `<span class="sched-rank ${FIFA_RANKINGS[m.teamB] <= 10 ? 'sched-rank-top' : ''}">#${FIFA_RANKINGS[m.teamB]}</span>` : ''}
           </div>
         </div>
