@@ -1504,13 +1504,16 @@ function bracketMatchHtml(m) {
     ${[
       { name: m.nameA, flag: m.flagA, score: m.scoreA, winner: m.winnerA, tbd: m.isTbdA, owner: m.ownerA },
       { name: m.nameB, flag: m.flagB, score: m.scoreB, winner: m.winnerB, tbd: m.isTbdB, owner: m.ownerB },
-    ].map(t => `
-      <div class="bracket-team-row ${t.winner ? 'winner' : ''}">
-        <span class="bracket-team-flag">${t.flag || '🏳️'}</span>
-        <span class="bracket-team-name ${t.tbd ? 'tbd' : ''}">${t.name}</span>
+    ].map(t => {
+      const lost = m.isDone && !t.tbd && !t.winner;
+      return `
+      <div class="bracket-team-row ${t.winner ? 'winner' : ''}" style="${lost ? 'opacity:0.45;' : ''}">
+        <span class="bracket-team-flag" style="${lost ? 'filter:grayscale(1);' : ''}">${t.flag || '🏳️'}</span>
+        <span class="bracket-team-name ${t.tbd ? 'tbd' : ''}" style="${lost ? 'text-decoration:line-through;color:var(--muted);' : ''}">${t.name}</span>
         ${t.owner ? `<span class="bracket-owner">${t.owner}</span>` : ''}
         <span class="bracket-team-score ${t.winner ? 'winner-score' : ''}">${t.score}</span>
-      </div>`).join('')}
+      </div>`;
+    }).join('')}
   </div>`;
 }
 
@@ -2059,7 +2062,10 @@ function renderLeaderboard() {
           <div class="lb-flags">${countries.map(c => {
             const rank = FIFA_RANKINGS[c.name];
             const elim = eliminatedTeams.has(c.name);
-            return `<span title="${c.name}${rank ? ' · FIFA #'+rank : ''}${elim ? ' · Eliminated' : ''}" style="${elim ? 'filter:grayscale(1);opacity:0.4;' : ''}">${c.flag}</span>`;
+            return `<span title="${c.name}${rank ? ' · FIFA #'+rank : ''}${elim ? ' · Eliminated' : ''}" style="display:inline-flex;align-items:center;gap:2px;${elim ? 'opacity:0.4;' : ''}">
+              <span style="${elim ? 'filter:grayscale(1);' : ''}">${c.flag}</span>
+              <span style="font-size:10px;font-weight:700;${elim ? 'text-decoration:line-through;color:var(--muted);' : ''}">${c.name}</span>
+            </span>`;
           }).join(' ') || '<span style="color:var(--muted)">No countries assigned</span>'}</div>
         </div>
       </div>
