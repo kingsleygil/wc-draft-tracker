@@ -1623,8 +1623,15 @@ function buildBracketTreeOrder() {
     const prevOrder = [];
     (order[curSlug] || []).forEach(m => {
       if (!m) { prevOrder.push(null, null); return; }
-      const idxA = resolveFeederIndex(m.nameA, prefix, prevRaw);
-      const idxB = resolveFeederIndex(m.nameB, prefix, prevRaw);
+      let idxA = resolveFeederIndex(m.nameA, prefix, prevRaw);
+      let idxB = resolveFeederIndex(m.nameB, prefix, prevRaw);
+      // ESPN sometimes lists the known winner as a real team name while still showing
+      // the feeder label on the other side — both resolve to the same match. Dedupe:
+      // keep whichever side used the feeder label, nullify the name-based duplicate.
+      if (idxA != null && idxA === idxB) {
+        const aIsLabel = m.nameA.match(new RegExp(`^${prefix} \\d+ Winner$`));
+        if (aIsLabel) idxB = null; else idxA = null;
+      }
       prevOrder.push(idxA != null ? prevRaw[idxA] : null, idxB != null ? prevRaw[idxB] : null);
     });
     order[prevSlug] = prevOrder;
