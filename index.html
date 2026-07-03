@@ -1383,9 +1383,9 @@ async function fetchTopScorers() {
 syncScores();
 fetchTopScorers();
 fetchActualGroups();
+fetchAllBracketRounds();
 syncInterval = setInterval(() => {
-  syncScores(); fetchTopScorers(); fetchActualGroups();
-  if (bracketRound) fetchAllBracketRounds();
+  syncScores(); fetchTopScorers(); fetchActualGroups(); fetchAllBracketRounds();
 }, 3 * 60 * 1000);
 
 // ── Schedule fetch ──────────────────────────────────────────
