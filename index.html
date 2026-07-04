@@ -1627,13 +1627,21 @@ function buildBracketTreeOrder() {
       let idxB = resolveFeederIndex(m.nameB, prefix, prevRaw);
       // ESPN sometimes lists the known winner as a real team name while still showing
       // the feeder label on the other side — both resolve to the same match. Dedupe:
-      // keep whichever side used the feeder label, nullify the name-based duplicate.
+      // keep the name-based result (real team), nullify the label-based duplicate.
       if (idxA != null && idxA === idxB) {
         const aIsLabel = m.nameA.match(new RegExp(`^${prefix} \\d+ Winner$`));
-        if (aIsLabel) idxB = null; else idxA = null;
+        if (aIsLabel) idxA = null; else idxB = null;
       }
       prevOrder.push(idxA != null ? prevRaw[idxA] : null, idxB != null ? prevRaw[idxB] : null);
     });
+    // Fill any null slots with orphaned matches (exist in cache but not yet placed in tree)
+    if (prevSlug === 'round-of-32') {
+      const placed = new Set(prevOrder.filter(Boolean).map(m => m.id));
+      const orphans = prevRaw.filter(m => m && !placed.has(m.id));
+      for (let i = 0; i < prevOrder.length && orphans.length; i++) {
+        if (!prevOrder[i]) prevOrder[i] = orphans.shift();
+      }
+    }
     order[prevSlug] = prevOrder;
   }
   return order;
