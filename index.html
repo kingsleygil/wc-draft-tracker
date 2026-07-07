@@ -1247,8 +1247,16 @@ function espnToOurs(name) {
 }
 
 function stageFromESPN(event) {
+  // Use season.slug as primary signal — reliable across all rounds
+  const slug = event.season?.slug || '';
+  if (slug === 'final') return 'Final';
+  if (slug === 'semifinals') return 'Semi-final';
+  if (slug === 'quarterfinals') return 'Quarter-final';
+  if (slug === 'round-of-16') return 'Round of 16';
+  if (slug === 'round-of-32') return 'Round of 32';
+  if (slug === '3rd-place-match') return 'Semi-final'; // same 2x multiplier
+  // Fallback: parse notes text
   const note = (event.competitions?.[0]?.notes || []).map(n => n.headline || '').join(' ').toLowerCase();
-  const name = (event.name || '').toLowerCase();
   if (note.includes('final') && !note.includes('semi') && !note.includes('quarter')) return 'Final';
   if (note.includes('semi')) return 'Semi-final';
   if (note.includes('quarter')) return 'Quarter-final';
@@ -1310,11 +1318,17 @@ async function syncScores() {
           liveCount++;
         }
 
-        if (isDone && inDraft && !seenEspnIds.has(espnId)) {
+        if (isDone && inDraft) {
           const stage = stageFromESPN(event);
-          state.matches.push({ id: Date.now() + Math.random(), espnId, teamA, teamB, scoreA, scoreB, stage, source: 'espn' });
-          seenEspnIds.add(espnId);
-          newCount++;
+          if (!seenEspnIds.has(espnId)) {
+            state.matches.push({ id: Date.now() + Math.random(), espnId, teamA, teamB, scoreA, scoreB, stage, source: 'espn' });
+            seenEspnIds.add(espnId);
+            newCount++;
+          } else {
+            // Fix any previously stored match that got the wrong stage label
+            const existing = state.matches.find(m => m.espnId === espnId);
+            if (existing && existing.stage !== stage) { existing.stage = stage; newCount++; }
+          }
         }
       }
     } catch(e) { errorOccurred = true; }
