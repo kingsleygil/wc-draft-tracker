@@ -2368,8 +2368,11 @@ async function fetchActualGroups() {
         }).sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf),
       };
     });
-    // Build global eliminated set
-    eliminatedTeams = new Set();
+    // Rebuild group-stage eliminations without wiping bracket losers
+    const bracketElim = new Set([...eliminatedTeams].filter(name =>
+      !actualGroupsCache.flatMap(g => g.teams).some(t => t.name === name)
+    ));
+    eliminatedTeams = new Set(bracketElim);
     for (const group of actualGroupsCache) {
       for (const t of group.teams) {
         if (t.status === 'eliminated') eliminatedTeams.add(t.name);
